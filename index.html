@@ -637,7 +637,12 @@ async function extractFormulas(){
           });
         });
       });
-      storedMathParas.push({el:p,idx:storedAllParas.indexOf(p),warn:mixedWarn});
+      // Store paraId for accurate XML insertion (avoids raw string index mismatch)
+      var paraid='';
+      var paraIdAttr=p.getAttributeNS?p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId'):
+                     p.getAttribute('w14:paraId')||'';
+      paraid=paraIdAttr||'';
+      storedMathParas.push({el:p,idx:storedAllParas.indexOf(p),warn:mixedWarn,paraid:paraid});
       autoSpoken.push(full.replace(/\s+/g,' ').trim());
     });
     setProgress(100,'Done — '+storedMathParas.length+' formula'+(storedMathParas.length!==1?'s found':'found'));
@@ -658,22 +663,37 @@ function renderEditPanel(){
   var list=document.getElementById('formulaList');
   list.innerHTML='';
   storedMathParas.forEach(function(mp,i){
-    var div=document.createElement('div');
-    div.className='formula-item'+(mp.warn?' needs-check':'');
-    var warnHtml=mp.warn
-      ? '<div class="fi-warn show">⚠ Mixed text+equation detected — check this one before exporting</div>'
-      : '';
-    div.innerHTML=
-      '<div class="fi-top">'+
-        '<span class="fi-num">#'+(i+1)+'</span>'+
-        '<span class="fi-formula">Para '+(mp.idx+1)+(mp.warn?' ⚠':'')+'</span>'+
-      '</div>'+
-      '<div class="fi-body">'+
-        '<div class="fi-label">Spoken text — edit if needed</div>'+
-        '<textarea class="fi-textarea" id="st'+i+'" rows="2" oninput="markEdited(this,'+i+')">'+esc(autoSpoken[i])+'</textarea>'+
-        warnHtml+
-      '</div>';
-    list.appendChild(div);
+    var card=document.createElement('div');
+    card.className='formula-item'+(mp.warn?' needs-check':'');
+    var top=document.createElement('div');
+    top.className='fi-top';
+    top.innerHTML='<span class="fi-num">#'+(i+1)+'</span><span class="fi-formula">Para '+(mp.idx+1)+(mp.warn?' ⚠':'')+'</span>';
+    card.appendChild(top);
+    var body=document.createElement('div');
+    body.className='fi-body';
+    body.style.display='block';
+    var lbl=document.createElement('div');
+    lbl.className='fi-label';
+    lbl.textContent='Spoken text — edit if needed';
+    body.appendChild(lbl);
+    var ta=document.createElement('textarea');
+    ta.className='fi-textarea';
+    ta.id='st'+i;
+    ta.rows=3;
+    ta.style.cssText='width:100%;font-size:12px;font-family:inherit;border:1px solid #ddd9d0;border-radius:6px;padding:.4rem .6rem;background:#fff;color:#1a1916;resize:vertical;line-height:1.5;min-height:48px;display:block;box-sizing:border-box';
+    ta.value=autoSpoken[i];
+    (function(textarea,idx){
+      textarea.addEventListener('input',function(){markEdited(textarea,idx)});
+    })(ta,i);
+    body.appendChild(ta);
+    if(mp.warn){
+      var warn=document.createElement('div');
+      warn.className='fi-warn show';
+      warn.textContent='⚠ Mixed text+equation detected — check this one before exporting';
+      body.appendChild(warn);
+    }
+    card.appendChild(body);
+    list.appendChild(card);
   });
   document.getElementById('editPanel').classList.add('show');
   setTimeout(function(){document.getElementById('editPanel').scrollIntoView({behavior:'smooth',block:'start'})},100);
@@ -697,15 +717,22 @@ async function buildDoc(){
     return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
   }
 
-  var re2=/<\/w:p>/g,m,cpos=[];while((m=re2.exec(storedDocXml))!==null)cpos.push(m.index);
+  // Use paraId to find exact insertion point — avoids raw string </w:p> count mismatch
   var uid=0x5D000001,ins=[];
   storedMathParas.forEach(function(mp,i){
-    var idx=mp.idx;if(idx>=0&&idx<cpos.length){
-      var pos=cpos[idx]+'</w:p>'.length;
-      var ctx=storedDocXml.substring(Math.max(0,cpos[idx]-600),cpos[idx]);
-      ins.push({pos:pos,xml:mkPara(texts[i],ctx.includes('ListParagraph'),uid.toString(16).toUpperCase().padStart(8,'0'))});
-      uid++;
-    }
+    var paraid=mp.paraid;
+    if(!paraid)return;
+    // Find the paragraph by its unique paraId in the raw XML
+    var search='w14:paraId="'+paraid+'"';
+    var paraStart=storedDocXml.indexOf(search);
+    if(paraStart<0)return;
+    // Find the closing </w:p> for this paragraph
+    var closeIdx=storedDocXml.indexOf('</w:p>',paraStart);
+    if(closeIdx<0)return;
+    var pos=closeIdx+'</w:p>'.length;
+    var ctx=storedDocXml.substring(Math.max(0,closeIdx-800),closeIdx);
+    ins.push({pos:pos,xml:mkPara(texts[i],ctx.includes('ListParagraph'),uid.toString(16).toUpperCase().padStart(8,'0'))});
+    uid++;
   });
   ins.sort(function(a,b){return b.pos-a.pos});
   var newXml=storedDocXml;
