@@ -717,26 +717,105 @@ async function buildDoc(){
     return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
   }
 
+  function mkParaWithSpacing(text,isList,uid,spacingAttrs){
+    var b=bi?'<w:b/>':'',it=bi?'<w:i/>':'';
+    var rp=b+it+'<w:color w:val="'+chosenColor+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
+    var pp=isList
+      ?'<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr><w:spacing '+spacingAttrs+'/><w:rPr>'+rp+'</w:rPr>'
+      :'<w:spacing '+spacingAttrs+'/><w:rPr>'+rp+'</w:rPr>';
+    var tx=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
+  }
+
   // Use paraId to find exact insertion point — avoids raw string </w:p> count mismatch
   var uid=0x5D000001,ins=[];
   storedMathParas.forEach(function(mp,i){
     var paraid=mp.paraid;
     if(!paraid)return;
-    // Find the paragraph by its unique paraId in the raw XML
     var search='w14:paraId="'+paraid+'"';
     var paraStart=storedDocXml.indexOf(search);
     if(paraStart<0)return;
-    // Find the closing </w:p> for this paragraph
     var closeIdx=storedDocXml.indexOf('</w:p>',paraStart);
     if(closeIdx<0)return;
-    var pos=closeIdx+'</w:p>'.length;
+
+    // Extract the formula paragraph's line spacing so we can restore it after spoken text
+    var formulaCtx=storedDocXml.substring(paraStart,closeIdx);
+    var lineMatch=formulaCtx.match(/w:line="(\d+)"/);
+    var originalLine=lineMatch?lineMatch[1]:'480';  // default double-space if not found
     var ctx=storedDocXml.substring(Math.max(0,closeIdx-800),closeIdx);
-    ins.push({pos:pos,xml:mkPara(texts[i],ctx.includes('ListParagraph'),uid.toString(16).toUpperCase().padStart(8,'0'))});
+    var isList=ctx.includes('ListParagraph');
+
+    // Fix 1: Zero out the "after" spacing on the formula paragraph itself
+    // so the spoken line sits tight underneath the formula with no gap
+    // We do this by injecting/replacing the spacing element in the formula para
+    var formulaParaXml=storedDocXml.substring(paraStart-50,closeIdx+6);
+    var fixedFormulaPara=''; // we'll handle this via XML manipulation below
+
+    var pos=closeIdx+'</w:p>'.length;
+
+    // Spoken para: before=0 (snap to formula), line=240 (single), after=originalLine (restore gap)
+    var spokenSpacing='w:before="0" w:after="'+originalLine+'" w:line="240" w:lineRule="auto"';
+    ins.push({
+      pos:pos,
+      xml:mkParaWithSpacing(texts[i],isList,uid.toString(16).toUpperCase().padStart(8,'0'),spokenSpacing),
+      paraid:paraid,
+      paraStart:paraStart,
+      closeIdx:closeIdx,
+      originalLine:originalLine
+    });
     uid++;
   });
-  ins.sort(function(a,b){return b.pos-a.pos});
-  var newXml=storedDocXml;
-  for(var i=0;i<ins.length;i++)newXml=newXml.slice(0,ins[i].pos)+'\n'+ins[i].xml+newXml.slice(ins[i].pos);
+
+  // Fix 2: Patch formula paragraphs to remove their line spacing gap after content
+  // Process in reverse order so positions stay valid
+  var patchedXml=storedDocXml;
+  var patchList=ins.slice().sort(function(a,b){return b.paraStart-a.paraStart});
+  patchList.forEach(function(ins){
+    var formulaXml=patchedXml.substring(ins.paraStart-60,ins.closeIdx+6);
+    // Add/replace spacing to set after=0, keeping the line spacing for the paragraph itself
+    // This removes the huge gap after the formula before our spoken text
+    var pPrEnd=formulaXml.indexOf('</w:pPr>');
+    if(pPrEnd<0)return;
+    var absStart=ins.paraStart-60;
+    var absPPrEnd=absStart+pPrEnd;
+    
+    // Check if there's already a spacing element
+    var spacingMatch=formulaXml.match(/(<w:spacing[^/]*)(\/>|>)/);
+    if(spacingMatch){
+      // Add w:after="0" to existing spacing element
+      var existingSpacing=spacingMatch[0];
+      var newSpacing=existingSpacing.replace(/(w:after="[^"]*")/,'w:after="0"');
+      if(!newSpacing.includes('w:after="0"')){
+        // No after attr yet — add it
+        newSpacing=existingSpacing.replace('<w:spacing','<w:spacing w:after="0"');
+      }
+      var origPos=patchedXml.indexOf(existingSpacing,ins.paraStart-60);
+      if(origPos>=0&&origPos<ins.closeIdx){
+        patchedXml=patchedXml.slice(0,origPos)+newSpacing+patchedXml.slice(origPos+existingSpacing.length);
+      }
+    } else {
+      // No spacing element — insert one before </w:pPr>
+      var insertAt=patchedXml.indexOf('</w:pPr>',ins.paraStart-60);
+      if(insertAt>=0&&insertAt<ins.closeIdx+100){
+        patchedXml=patchedXml.slice(0,insertAt)+'<w:spacing w:after="0"/>'+patchedXml.slice(insertAt);
+      }
+    }
+  });
+  // Apply spoken insertions to patchedXml (formula after-spacing already zeroed)
+  // Re-find each paraId position since patching may have shifted offsets
+  var newXml=patchedXml;
+  ins.forEach(function(item){
+    var search='w14:paraId="'+item.paraid+'"';
+    var pStart=newXml.indexOf(search);
+    if(pStart<0){item.finalPos=-1;return;}
+    var cIdx=newXml.indexOf('</w:p>',pStart);
+    item.finalPos=cIdx<0?-1:cIdx+'</w:p>'.length;
+  });
+  ins.sort(function(a,b){return (b.finalPos||0)-(a.finalPos||0)});
+  for(var i=0;i<ins.length;i++){
+    if((ins[i].finalPos||0)<0)continue;
+    newXml=newXml.slice(0,ins[i].finalPos)+'\n'+ins[i].xml+newXml.slice(ins[i].finalPos);
+  }
   storedZip.file('word/document.xml',newXml);
   var blob=await storedZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
   storedZip.file('word/document.xml',storedDocXml);
