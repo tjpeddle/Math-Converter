@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Read Aloud Converter — OARS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: #ddd9d0;
+    --text: #1a1916;
+    --muted: #7a776e;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0eb;
+    --accent2: #8b4513;
+    --warn: #c0392b;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Instrument Serif', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  html, body { min-height: 100vh; background: var(--bg); font-family: var(--sans); color: var(--text); }
+
+  .page { max-width: 780px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  header { margin-bottom: 3rem; }
+  .header-tag { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); background: var(--accent-light); display: inline-block; padding: 4px 10px; border-radius: 4px; margin-bottom: 1rem; }
+  h1 { font-family: var(--serif); font-size: 2.6rem; font-weight: 400; line-height: 1.1; color: var(--text); }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subhead { margin-top: .75rem; font-size: 15px; color: var(--muted); line-height: 1.6; max-width: 520px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem; margin-bottom: 1.25rem; }
+  .card-title { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: var(--accent-light); }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 2rem; margin-bottom: .75rem; }
+  .drop-main { font-size: 15px; font-weight: 500; color: var(--text); }
+  .drop-sub { font-size: 13px; color: var(--muted); margin-top: .35rem; }
+
+  .file-chosen { display: none; align-items: center; gap: 12px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+  .file-chosen.show { display: flex; }
+  .file-icon { font-size: 1.5rem; }
+  .file-name { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500; flex: 1; word-break: break-all; }
+  .file-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .file-clear:hover { background: var(--border); }
+
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .option-block label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: .85rem 1rem; border: 1px solid var(--border); border-radius: 8px; transition: border-color .15s, background .15s; }
+  .option-block input[type=checkbox] { margin-top: 2px; accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
+  .option-block label:has(input:checked) { border-color: var(--accent); background: var(--accent-light); }
+  .opt-title { font-size: 13px; font-weight: 500; display: block; }
+  .opt-desc { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; line-height: 1.4; }
+
+  .style-row { display: flex; gap: 10px; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
+  .style-row label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .color-pick { display: flex; gap: 6px; }
+  .color-pick button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: border-color .15s; }
+  .color-pick button.active { border-color: var(--text); }
+  .size-pick { display: flex; gap: 6px; }
+  .size-pick button { font-size: 11px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--surface); color: var(--text); }
+  .size-pick button.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+
+  .btn-process {
+    width: 100%;
+    padding: 1rem;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-process:hover { background: #1e3d2a; }
+  .btn-process:active { transform: scale(.99); }
+  .btn-process:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .progress { display: none; margin-top: 1.5rem; }
+  .progress.show { display: block; }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 6px; overflow: hidden; height: 6px; margin-bottom: .6rem; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 6px; transition: width .3s; width: 0%; }
+  .progress-label { font-size: 12px; color: var(--muted); }
+
+  .results { display: none; margin-top: 1.5rem; }
+  .results.show { display: block; }
+  .result-box { background: var(--accent-light); border: 1px solid var(--accent); border-radius: 10px; padding: 1.25rem 1.5rem; }
+  .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .result-check { font-size: 1.4rem; }
+  .result-title { font-size: 15px; font-weight: 600; color: var(--accent); }
+  .result-stats { font-size: 13px; color: var(--muted); margin-bottom: 1.25rem; }
+  .result-stats span { color: var(--text); font-weight: 500; }
+  .btn-download { display: inline-flex; align-items: center; gap: 8px; padding: .7rem 1.4rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background .2s; }
+  .btn-download:hover { background: #1e3d2a; }
+
+  .formula-preview { margin-top: 1.25rem; }
+  .fp-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: .6rem; }
+  .fp-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding-right: 4px; }
+  .fp-item { background: white; border: 1px solid var(--border); border-radius: 7px; padding: .65rem .9rem; font-size: 12.5px; }
+  .fp-spoken { color: var(--accent); font-style: italic; font-family: var(--mono); font-size: 11.5px; margin-top: 3px; }
+
+  .error-box { background: #fdf0ee; border: 1px solid #e8b4ac; border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1rem; color: var(--warn); font-size: 13px; display: none; }
+  .error-box.show { display: block; }
+
+  .how-it-works { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 2rem; }
+  .hiw-title { font-family: var(--serif); font-size: 1.4rem; margin-bottom: 1.25rem; }
+  .steps { display: flex; flex-direction: column; gap: .85rem; }
+  .step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .step-text strong { color: var(--text); }
+
+  .convention-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-top: 1.5rem; }
+  .conv-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1rem; }
+  .conv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .conv-item { display: flex; gap: 8px; font-size: 12.5px; align-items: center; }
+  .conv-sym { font-family: var(--mono); background: white; border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; color: var(--accent2); font-size: 11px; flex-shrink: 0; }
+  .conv-arrow { color: var(--muted); }
+  .conv-spoken { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">OARS — Accessibility Tool</div>
+    <h1>Math <em>Read Aloud</em><br>Converter</h1>
+    <p class="subhead">Upload any Word exam document. Spoken versions of every math formula are added directly beneath each equation — the way instructors actually teach it in class.</p>
+  </header>
+
+  <div class="card">
+    <div class="card-title">Upload Document</div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".docx">
+      <div class="drop-icon">📄</div>
+      <div class="drop-main">Drop your .docx here or click to browse</div>
+      <div class="drop-sub">Word documents with equation editor formulas</div>
+    </div>
+    <div class="file-chosen" id="fileChosen">
+      <span class="file-icon">📝</span>
+      <span class="file-name" id="fileName">—</span>
+      <button class="file-clear" onclick="clearFile()">✕ Remove</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Spoken Text Style</div>
+    <div class="style-row">
+      <label style="font-size:13px;color:var(--muted);font-weight:500;">Text color:</label>
+      <div class="color-pick" id="colorPick">
+        <button style="background:#7a776e" title="Gray" data-color="7F7F7F" class="active" onclick="setColor(this,'7F7F7F')"></button>
+        <button style="background:#2d5a3d" title="Green" data-color="2D5A3D" onclick="setColor(this,'2D5A3D')"></button>
+        <button style="background:#185FA5" title="Blue" data-color="185FA5" onclick="setColor(this,'185FA5')"></button>
+        <button style="background:#8b4513" title="Brown" data-color="8B4513" onclick="setColor(this,'8B4513')"></button>
+        <button style="background:#1a1916" title="Black" data-color="1A1916" onclick="setColor(this,'1A1916')"></button>
+      </div>
+    </div>
+    <div class="style-row" style="margin-top:.75rem">
+      <label style="font-size:13px;color:var(--muted);font-weight:500;">Font size:</label>
+      <div class="size-pick" id="sizePick">
+        <button onclick="setSize(this,18)" class="active">Small</button>
+        <button onclick="setSize(this,20)">Medium</button>
+        <button onclick="setSize(this,22)">Large</button>
+      </div>
+    </div>
+    <div class="options-grid" style="margin-top:1.25rem">
+      <div class="option-block">
+        <label>
+          <input type="checkbox" id="optBoldItalic" checked>
+          <span><span class="opt-title">Bold + Italic</span><span class="opt-desc">Visually distinct from regular text</span></span>
+        </label>
+      </div>
+      <div class="option-block">
+        <label>
+          <input type="checkbox" id="optTightSpacing" checked>
+          <span><span class="opt-title">Tight spacing</span><span class="opt-desc">Spoken text sits close under formula</span></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-process" id="btnProcess" onclick="processDoc()" disabled>
+    <span>⚡</span> Convert Document
+  </button>
+
+  <div class="progress" id="progressWrap">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel">Reading document...</div>
+  </div>
+
+  <div class="results" id="resultsWrap">
+    <div class="result-box">
+      <div class="result-header">
+        <span class="result-check">✅</span>
+        <span class="result-title">Document processed successfully</span>
+      </div>
+      <div class="result-stats" id="resultStats"></div>
+      <a class="btn-download" id="downloadBtn" href="#" download>
+        ⬇ Download converted .docx
+      </a>
+      <div class="formula-preview" id="formulaPreview"></div>
+    </div>
+  </div>
+
+  <div class="how-it-works">
+    <div class="hiw-title">How it works</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Upload</strong> any Word document created with the equation editor — exams, worksheets, problem sets.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Auto-detects</strong> every OMML math formula in the document, including fractions, exponents, polynomials, and factored forms.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Inserts spoken text</strong> directly below each formula in bold italic — no label, just natural classroom language Word reads aloud correctly.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Formula stays visible.</strong> The student sees the equation and hears the spoken version. Word's Read Aloud skips the OMML object and reads the spoken line naturally.</div></div>
+    </div>
+
+    <div class="convention-box">
+      <div class="conv-title">Spoken math conventions used</div>
+      <div class="conv-grid">
+        <div class="conv-item"><span class="conv-sym">x²</span><span class="conv-arrow">→</span><span class="conv-spoken">x squared</span></div>
+        <div class="conv-item"><span class="conv-sym">x³</span><span class="conv-arrow">→</span><span class="conv-spoken">x cubed</span></div>
+        <div class="conv-item"><span class="conv-sym">x⁴</span><span class="conv-arrow">→</span><span class="conv-spoken">x to the fourth power</span></div>
+        <div class="conv-item"><span class="conv-sym">x⁻²</span><span class="conv-arrow">→</span><span class="conv-spoken">x to the negative 2</span></div>
+        <div class="conv-item"><span class="conv-sym">(3x+4)</span><span class="conv-arrow">→</span><span class="conv-spoken">the quantity 3x plus 4</span></div>
+        <div class="conv-item"><span class="conv-sym">a/b</span><span class="conv-arrow">→</span><span class="conv-spoken">a over b</span></div>
+        <div class="conv-item"><span class="conv-sym">x⁰</span><span class="conv-arrow">→</span><span class="conv-spoken">x to the zero power</span></div>
+        <div class="conv-item"><span class="conv-sym">g(x)</span><span class="conv-arrow">→</span><span class="conv-spoken">g of x</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentFile = null;
+let chosenColor = '7F7F7F';
+let chosenSize = 18;
+
+// ── File handling ──────────────────────────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+function setFile(f) {
+  if (!f.name.endsWith('.docx')) { showError('Please upload a .docx Word document.'); return; }
+  currentFile = f;
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileChosen').classList.add('show');
+  document.getElementById('btnProcess').disabled = false;
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('resultsWrap').classList.remove('show');
+}
+
+function clearFile() {
+  currentFile = null;
+  fileInput.value = '';
+  document.getElementById('fileChosen').classList.remove('show');
+  document.getElementById('btnProcess').disabled = true;
+}
+
+function setColor(btn, color) {
+  chosenColor = color;
+  document.querySelectorAll('#colorPick button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setSize(btn, size) {
+  chosenSize = size;
+  document.querySelectorAll('#sizePick button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠️ ' + msg;
+  box.classList.add('show');
+}
+function setProgress(pct, label) {
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+// ── Spoken math engine ──────────────────────────────────────────────────────
+// Parse OMML XML and convert to classroom-spoken math
+
+const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
+
+function ommlToSpeech(oMathEl) {
+  return speakNode(oMathEl).trim().replace(/\s+/g, ' ').replace(/,\s*,/g, ',').trim();
+}
+
+function speakNode(node) {
+  if (!node || node.nodeType === 3) return node ? (node.textContent || '') : '';
+  const tag = node.localName;
+  const children = Array.from(node.childNodes);
+
+  switch(tag) {
+    case 'oMath':
+    case 'oMathPara':
+      return children.map(speakNode).join('').trim();
+
+    // Run — just get text
+    case 'r': {
+      const t = node.querySelector ? node.querySelector('*|t') : null;
+      return t ? t.textContent : children.map(speakNode).join('');
+    }
+    case 't':
+      return node.textContent || '';
+
+    // Fraction
+    case 'f': {
+      const num = node.querySelector ? getChild(node, 'num') : null;
+      const den = node.querySelector ? getChild(node, 'den') : null;
+      const numText = num ? speakChildren(num) : '';
+      const denText = den ? speakChildren(den) : '';
+      return `${numText} over ${denText}`;
+    }
+    case 'num': return speakChildren(node);
+    case 'den': return speakChildren(node);
+
+    // Superscript: sSup
+    case 'sSup': {
+      const e = getChild(node, 'e');
+      const sup = getChild(node, 'sup');
+      const base = e ? speakChildren(e) : '';
+      const expText = sup ? speakChildren(sup).trim() : '';
+      return speakExponent(base, expText);
+    }
+    case 'e': return speakChildren(node);
+    case 'sup': return speakChildren(node);
+
+    // Subscript: sSub
+    case 'sSub': {
+      const e = getChild(node, 'e');
+      const sub = getChild(node, 'sub');
+      const base = e ? speakChildren(e) : '';
+      const subText = sub ? speakChildren(sub).trim() : '';
+      return `${base} sub ${subText}`;
+    }
+    case 'sub': return speakChildren(node);
+
+    // Sub+Sup: sSubSup
+    case 'sSubSup': {
+      const e = getChild(node, 'e');
+      const sub = getChild(node, 'sub');
+      const sup = getChild(node, 'sup');
+      const base = e ? speakChildren(e) : '';
+      const subText = sub ? speakChildren(sub).trim() : '';
+      const supText = sup ? speakChildren(sup).trim() : '';
+      return `${base} sub ${subText} to the ${namedPower(supText)}`;
+    }
+
+    // Delimiter / parentheses
+    case 'd': {
+      const dPr = getChild(node, 'dPr');
+      let open = '(', close = ')';
+      if (dPr) {
+        const begChr = dPr.querySelector ? dPr.querySelector('*|begChr') : null;
+        const endChr = dPr.querySelector ? dPr.querySelector('*|endChr') : null;
+        if (begChr) open = begChr.getAttribute('m:val') || '(';
+        if (endChr) close = endChr.getAttribute('m:val') || ')';
+      }
+      const inner = children.filter(c=>c.localName==='e').map(speakChildren).join(', ');
+      if (open === '(' && close === ')') return `the quantity ${inner}, end quantity`;
+      if (open === '[' && close === ']') return `bracket ${inner}, end bracket`;
+      if (open === '|' && close === '|') return `absolute value of ${inner}`;
+      return `${inner}`;
+    }
+
+    // Radical / square root
+    case 'rad': {
+      const deg = getChild(node, 'deg');
+      const e = getChild(node, 'e');
+      const inner = e ? speakChildren(e) : '';
+      const degText = deg ? speakChildren(deg).trim() : '';
+      if (!degText || degText === '2') return `the square root of ${inner}`;
+      if (degText === '3') return `the cube root of ${inner}`;
+      return `the ${degText}th root of ${inner}`;
+    }
+    case 'deg': return speakChildren(node);
+
+    // Nary (summation, integral, etc.)
+    case 'nary': {
+      const naryPr = getChild(node, 'naryPr');
+      const sub = getChild(node, 'sub');
+      const sup = getChild(node, 'sup');
+      const e = getChild(node, 'e');
+      let chr = '∑';
+      if (naryPr) {
+        const chrEl = naryPr.querySelector ? naryPr.querySelector('*|chr') : null;
+        if (chrEl) chr = chrEl.getAttribute('m:val') || chr;
+      }
+      const label = chr === '∫' ? 'integral' : chr === '∑' ? 'sum' : chr === '∏' ? 'product' : 'operation';
+      const from = sub ? speakChildren(sub) : '';
+      const to = sup ? speakChildren(sup) : '';
+      const expr = e ? speakChildren(e) : '';
+      let out = label;
+      if (from) out += ` from ${from}`;
+      if (to) out += ` to ${to}`;
+      if (expr) out += ` of ${expr}`;
+      return out;
+    }
+
+    // Matrix / table
+    case 'm': {
+      const rows = children.filter(c=>c.localName==='mr');
+      return 'matrix: ' + rows.map((r,i) => `row ${i+1}: ` + speakChildren(r)).join('; ');
+    }
+    case 'mr': return speakChildren(node);
+
+    // Bar, accent
+    case 'bar': {
+      const e = getChild(node, 'e');
+      return (e ? speakChildren(e) : '') + ' bar';
+    }
+    case 'acc': {
+      const accPr = getChild(node, 'accPr');
+      const e = getChild(node, 'e');
+      let chr = '^';
+      if (accPr) {
+        const chrEl = accPr.querySelector ? accPr.querySelector('*|chr') : null;
+        if (chrEl) chr = chrEl.getAttribute('m:val') || chr;
+      }
+      const inner = e ? speakChildren(e) : '';
+      if (chr === '^' || chr === '̂') return `${inner} hat`;
+      if (chr === '→') return `vector ${inner}`;
+      return `${inner}`;
+    }
+
+    // Grouping char (used for over/under braces)
+    case 'groupChr': {
+      const e = getChild(node, 'e');
+      return e ? speakChildren(e) : speakChildren(node);
+    }
+
+    // Limit (lim)
+    case 'limLow': {
+      const e = getChild(node, 'e');
+      const lim = getChild(node, 'lim');
+      const expr = e ? speakChildren(e) : '';
+      const limText = lim ? speakChildren(lim) : '';
+      return `${expr} as ${limText}`;
+    }
+
+    // Skip property nodes
+    case 'fPr': case 'sSupPr': case 'sSubPr': case 'sSubSupPr':
+    case 'dPr': case 'radPr': case 'naryPr': case 'mPr':
+    case 'mPrChange': case 'rPr': case 'ctrlPr':
+    case 'rFonts': case 'sz': case 'color': case 'accPr':
+    case 'groupChrPr': case 'limLowPr': case 'barPr':
+      return '';
+
+    default:
+      return children.map(speakNode).join('');
+  }
+}
+
+function speakChildren(node) {
+  return Array.from(node.childNodes).map(speakNode).join('');
+}
+
+function getChild(node, localName) {
+  if (!node.childNodes) return null;
+  for (const c of node.childNodes) {
+    if (c.localName === localName) return c;
+  }
+  return null;
+}
+
+function speakExponent(base, expRaw) {
+  const exp = expRaw.trim();
+  // Detect negative exponent
+  const isNeg = exp.startsWith('-');
+  const absExp = isNeg ? exp.slice(1).trim() : exp;
+
+  if (absExp === '0') return `${base} to the zero power`;
+  if (absExp === '1') return isNeg ? `${base} to the negative 1` : base;
+  if (absExp === '2') return isNeg ? `${base} to the negative 2` : `${base} squared`;
+  if (absExp === '3') return isNeg ? `${base} to the negative 3` : `${base} cubed`;
+
+  const suffix = namedPower(absExp);
+  return isNeg ? `${base} to the negative ${absExp}` : `${base} to the ${suffix}`;
+}
+
+function namedPower(n) {
+  const p = parseInt(n);
+  if (isNaN(p)) return n + ' power';
+  if (p === 4) return 'fourth power';
+  if (p === 5) return 'fifth power';
+  if (p === 6) return 'sixth power';
+  if (p === 7) return 'seventh power';
+  if (p === 8) return 'eighth power';
+  if (p === 9) return 'ninth power';
+  if (p === 10) return 'tenth power';
+  return p + 'th power';
+}
+
+// Post-process spoken text for natural language
+function naturalise(s) {
+  return s
+    .replace(/\bg\s+of\s+x\b/g, 'g of x')
+    .replace(/\bf\s+of\s+x\b/g, 'f of x')
+    // Fix spacing around operators already in text
+    .replace(/(\w)\s*\+\s*(\w)/g, '$1 plus $2')
+    .replace(/(\w)\s*-\s*(\w)/g, '$1 minus $2')
+    .replace(/(\w)\s*=\s*(\w)/g, '$1 equals $2')
+    // coefficient spacing: 3x → 3 x when followed by letter
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2')
+    // Fix "end quantity, end quantity" repetition from nested parens
+    .replace(/(end quantity[,.]?\s*){2,}/g, 'end quantity, ')
+    // Clean up multiple spaces and trailing commas
+    .replace(/\s+/g, ' ')
+    .replace(/,\s*$/, '')
+    .trim();
+}
+
+// ── Main processing ─────────────────────────────────────────────────────────
+async function processDoc() {
+  if (!currentFile) return;
+
+  document.getElementById('btnProcess').disabled = true;
+  document.getElementById('progressWrap').classList.add('show');
+  document.getElementById('resultsWrap').classList.remove('show');
+  document.getElementById('errorBox').classList.remove('show');
+
+  try {
+    setProgress(10, 'Reading document...');
+    const arrayBuffer = await currentFile.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+
+    setProgress(25, 'Parsing XML...');
+    const docXml = await zip.file('word/document.xml').async('string');
+
+    setProgress(40, 'Finding math formulas...');
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(docXml, 'application/xml');
+
+    // Find all paragraphs containing oMath
+    const allParas = xmlDoc.querySelectorAll('p');
+    const mathParas = [];
+    allParas.forEach(p => {
+      const maths = p.querySelectorAll('oMath');
+      if (maths.length > 0) {
+        const spokenParts = [];
+        maths.forEach(m => {
+          const spoken = naturalise(ommlToSpeech(m));
+          if (spoken) spokenParts.push(spoken);
+        });
+        // Also pick up any plain text runs in the same paragraph (like "(Factoring)")
+        const extra = [];
+        p.querySelectorAll('r').forEach(r => {
+          // Only runs NOT inside oMath
+          if (!r.closest('oMath')) {
+            const t = r.querySelector('t');
+            if (t && t.textContent.trim()) extra.push(t.textContent.trim());
+          }
+        });
+        const extraText = extra.join(' ').trim();
+        const fullSpoken = spokenParts.join(', ') + (extraText ? ', ' + extraText : '');
+        mathParas.push({ el: p, spoken: fullSpoken.replace(/\s+/g, ' ').trim() });
+      }
+    });
+
+    setProgress(60, `Found ${mathParas.length} formulas — generating spoken text...`);
+
+    // Now work on the raw XML string to insert spoken paragraphs
+    // We'll use a regex approach to find </w:p> after each math paragraph
+    // Determine if a paragraph is a list paragraph
+    const boldItalic = document.getElementById('optBoldItalic').checked;
+    const tightSpacing = document.getElementById('optTightSpacing').checked;
+    const szVal = chosenSize * 2; // half-points
+    const spacingBefore = tightSpacing ? '0' : '80';
+    const spacingAfter = tightSpacing ? '60' : '120';
+
+    // Build spoken paragraph XML
+    function makeSpokenPara(spokenText, isListPara, uid) {
+      const boldTag = boldItalic ? '<w:b/>' : '';
+      const italicTag = boldItalic ? '<w:i/>' : '';
+      const rPrInner = `${boldTag}${italicTag}<w:color w:val="${chosenColor}"/><w:sz w:val="${szVal}"/><w:szCs w:val="${szVal}"/>`;
+      const pPrContent = isListPara
+        ? `<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr><w:spacing w:before="${spacingBefore}" w:after="${spacingAfter}"/><w:rPr>${rPrInner}</w:rPr>`
+        : `<w:spacing w:before="${spacingBefore}" w:after="${spacingAfter}"/><w:rPr>${rPrInner}</w:rPr>`;
+
+      // Escape XML special chars in spoken text
+      const escaped = spokenText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      return `<w:p w14:paraId="${uid}" w14:textId="${uid}" w:rsidR="00AC1234" w:rsidRDefault="00AC1234"><w:pPr>${pPrContent}</w:pPr><w:r><w:rPr>${rPrInner}</w:rPr><w:t xml:space="preserve">${escaped}</w:t></w:r></w:p>`;
+    }
+
+    // We need to insert after the </w:p> that contains each math para
+    // Strategy: build list of (paraNode -> spokenText), then process raw XML
+    // We'll identify each math para by its position in the allParas NodeList
+
+    const allParasArr = Array.from(allParas);
+    // Build insertion map: para index -> spoken text
+    const insertMap = new Map();
+    mathParas.forEach(({el, spoken}) => {
+      const idx = allParasArr.indexOf(el);
+      if (idx >= 0) insertMap.set(idx, spoken);
+    });
+
+    setProgress(75, 'Inserting spoken text into document...');
+
+    // Process raw XML: find each </w:p> occurrence and insert after the ones that match
+    let newXml = docXml;
+    // Find all </w:p> positions in raw XML
+    const pCloseRegex = /<\/w:p>/g;
+    let match;
+    const positions = [];
+    while ((match = pCloseRegex.exec(docXml)) !== null) {
+      positions.push(match.index);
+    }
+
+    // Insert in reverse order to preserve positions
+    let uid = 0x1A000001;
+    const insertions = [];
+
+    for (const [paraIdx, spoken] of insertMap) {
+      if (paraIdx < positions.length) {
+        const pos = positions[paraIdx] + '</w:p>'.length;
+        // Check if list para by looking at context
+        const ctxStart = Math.max(0, positions[paraIdx] - 500);
+        const ctx = docXml.substring(ctxStart, positions[paraIdx]);
+        const isListPara = ctx.includes('ListParagraph');
+        const paraXml = makeSpokenPara(spoken, isListPara, uid.toString(16).toUpperCase().padStart(8,'0'));
+        uid++;
+        insertions.push({ pos, paraXml });
+      }
+    }
+
+    // Sort in reverse order and apply
+    insertions.sort((a,b) => b.pos - a.pos);
+    for (const {pos, paraXml} of insertions) {
+      newXml = newXml.slice(0, pos) + '\n' + paraXml + newXml.slice(pos);
+    }
+
+    setProgress(88, 'Building output file...');
+
+    // Update the zip
+    zip.file('word/document.xml', newXml);
+    const outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+    setProgress(100, 'Done!');
+
+    // Create download
+    const url = URL.createObjectURL(outBlob);
+    const baseName = currentFile.name.replace(/\.docx$/, '');
+    const outName = `${baseName}_ReadAloud.docx`;
+    const dlBtn = document.getElementById('downloadBtn');
+    dlBtn.href = url;
+    dlBtn.download = outName;
+
+    // Show stats
+    document.getElementById('resultStats').innerHTML =
+      `Processed <span>${mathParas.length} formula${mathParas.length!==1?'s':''}</span> — spoken text added directly beneath each equation. File ready as <span>${outName}</span>`;
+
+    // Show preview
+    const preview = document.getElementById('formulaPreview');
+    const previewItems = mathParas.slice(0, 8).map(({spoken}, i) =>
+      `<div class="fp-item">Formula ${i+1}<div class="fp-spoken">${spoken}</div></div>`
+    ).join('');
+    const moreNote = mathParas.length > 8 ? `<div style="font-size:12px;color:var(--muted);padding:.5rem .9rem">...and ${mathParas.length - 8} more</div>` : '';
+    preview.innerHTML = `<div class="fp-title">Spoken text preview</div><div class="fp-list">${previewItems}${moreNote}</div>`;
+
+    document.getElementById('resultsWrap').classList.add('show');
+    document.getElementById('progressWrap').classList.remove('show');
+
+  } catch(err) {
+    document.getElementById('progressWrap').classList.remove('show');
+    document.getElementById('btnProcess').disabled = false;
+    showError('Error processing document: ' + err.message);
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
