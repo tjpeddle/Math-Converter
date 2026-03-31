@@ -727,7 +727,9 @@ async function buildDoc(){
     return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
   }
 
-  // Use paraId to find exact insertion point — avoids raw string </w:p> count mismatch
+  // INSERT BEFORE the formula paragraph so the instructor's work-space
+  // (huge line spacing below the formula) stays completely intact for the student.
+  // Layout: [spoken text] → [formula] → [blank work space]
   var uid=0x5D000001,ins=[];
   storedMathParas.forEach(function(mp,i){
     var paraid=mp.paraid;
@@ -735,39 +737,20 @@ async function buildDoc(){
     var search='w14:paraId="'+paraid+'"';
     var paraStart=storedDocXml.indexOf(search);
     if(paraStart<0)return;
-    var closeIdx=storedDocXml.indexOf('</w:p>',paraStart);
-    if(closeIdx<0)return;
-
-    // Extract the formula paragraph's line spacing so we can restore it after spoken text
-    var formulaCtx=storedDocXml.substring(paraStart,closeIdx);
-    var lineMatch=formulaCtx.match(/w:line="(\d+)"/);
-    var originalLine=lineMatch?lineMatch[1]:'480';  // default double-space if not found
-    var ctx=storedDocXml.substring(Math.max(0,closeIdx-800),closeIdx);
+    // Find the opening <w:p tag for this paragraph
+    var openTag=storedDocXml.lastIndexOf('<w:p ',paraStart);
+    if(openTag<0)return;
+    var ctx=storedDocXml.substring(Math.max(0,openTag-600),openTag);
     var isList=ctx.includes('ListParagraph');
-
-    // Fix 1: Zero out the "after" spacing on the formula paragraph itself
-    // so the spoken line sits tight underneath the formula with no gap
-    // We do this by injecting/replacing the spacing element in the formula para
-    var formulaParaXml=storedDocXml.substring(paraStart-50,closeIdx+6);
-    var fixedFormulaPara=''; // we'll handle this via XML manipulation below
-
-    var pos=closeIdx+'</w:p>'.length;
-
-    // Spoken para: before=0 (snap to formula), line=240 (single), after=originalLine (restore gap)
-    var spokenSpacing='w:before="0" w:after="'+originalLine+'" w:line="240" w:lineRule="auto"';
+    // Spoken para: single line, small spacing — sits tight above the formula
+    var spokenSpacing='w:before="60" w:after="60" w:line="240" w:lineRule="auto"';
     ins.push({
-      pos:pos,
-      xml:mkParaWithSpacing(texts[i],isList,uid.toString(16).toUpperCase().padStart(8,'0'),spokenSpacing),
-      paraid:paraid,
-      paraStart:paraStart,
-      closeIdx:closeIdx,
-      originalLine:originalLine
+      pos:openTag,
+      xml:mkParaWithSpacing(texts[i],isList,uid.toString(16).toUpperCase().padStart(8,'0'),spokenSpacing)+'\n',
+      paraid:paraid
     });
     uid++;
   });
-
-  // Fix 2: Patch formula paragraphs to remove their line spacing gap after content
-  // Process in reverse order so positions stay valid
   var patchedXml=storedDocXml;
   var patchList=ins.slice().sort(function(a,b){return b.paraStart-a.paraStart});
   patchList.forEach(function(ins){
@@ -801,20 +784,11 @@ async function buildDoc(){
       }
     }
   });
-  // Apply spoken insertions to patchedXml (formula after-spacing already zeroed)
-  // Re-find each paraId position since patching may have shifted offsets
+  // Apply insertions in reverse position order so earlier positions stay valid
+  ins.sort(function(a,b){return b.pos-a.pos});
   var newXml=patchedXml;
-  ins.forEach(function(item){
-    var search='w14:paraId="'+item.paraid+'"';
-    var pStart=newXml.indexOf(search);
-    if(pStart<0){item.finalPos=-1;return;}
-    var cIdx=newXml.indexOf('</w:p>',pStart);
-    item.finalPos=cIdx<0?-1:cIdx+'</w:p>'.length;
-  });
-  ins.sort(function(a,b){return (b.finalPos||0)-(a.finalPos||0)});
   for(var i=0;i<ins.length;i++){
-    if((ins[i].finalPos||0)<0)continue;
-    newXml=newXml.slice(0,ins[i].finalPos)+'\n'+ins[i].xml+newXml.slice(ins[i].finalPos);
+    newXml=newXml.slice(0,ins[i].pos)+ins[i].xml+newXml.slice(ins[i].pos);
   }
   storedZip.file('word/document.xml',newXml);
   var blob=await storedZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
