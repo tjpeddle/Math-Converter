@@ -129,11 +129,11 @@ h1 em{font-style:italic;color:var(--accent)}
     </div>
     <label>Size (pts):</label>
     <div class="spick" id="spick">
-      <button onclick="setSize(this,10)">10</button>
+      <button onclick="setSize(this,9)">9</button>
+      <button onclick="setSize(this,10)" class="active">10</button>
       <button onclick="setSize(this,11)">11</button>
-      <button onclick="setSize(this,12)" class="active">12</button>
+      <button onclick="setSize(this,12)">12</button>
       <button onclick="setSize(this,13)">13</button>
-      <button onclick="setSize(this,14)">14</button>
     </div>
   </div>
   <div class="opts-row">
@@ -264,7 +264,7 @@ h1 em{font-style:italic;color:var(--accent)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 'use strict';
-var currentFile=null,chosenColor='7F7F7F',chosenSize=12;
+var currentFile=null,chosenColor='7F7F7F',chosenSize=10;
 var storedZip=null,storedDocXml=null,storedAllParas=null,storedMathParas=[],autoSpoken=[];
 
 var dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
@@ -662,39 +662,50 @@ function renderEditPanel(){
     (warnCount?' — '+warnCount+' need review':'');
   var list=document.getElementById('formulaList');
   list.innerHTML='';
+
   storedMathParas.forEach(function(mp,i){
+    // Outer card
     var card=document.createElement('div');
-    card.className='formula-item'+(mp.warn?' needs-check':'');
-    var top=document.createElement('div');
-    top.className='fi-top';
-    top.innerHTML='<span class="fi-num">#'+(i+1)+'</span><span class="fi-formula">Para '+(mp.idx+1)+(mp.warn?' ⚠':'')+'</span>';
-    card.appendChild(top);
+    card.style.cssText='background:#fff;border:1px solid '+(mp.warn?'#EF9F27':'#ddd9d0')+';border-radius:8px;overflow:hidden;margin-bottom:6px';
+
+    // Header
+    var hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+(mp.warn?'#FAEEDA':'#f0ede6')+';border-bottom:1px solid '+(mp.warn?'#EF9F27':'#ddd9d0');
+    hdr.innerHTML='<span style="font-size:10px;font-weight:700;color:#7a776e;min-width:26px">#'+(i+1)+'</span>'
+      +'<span style="font-size:10.5px;font-family:monospace;color:#1a1916;flex:1">Para '+(mp.idx+1)+(mp.warn?' ⚠':'')+'</span>';
+    card.appendChild(hdr);
+
+    // Body
     var body=document.createElement('div');
-    body.className='fi-body';
-    body.style.display='block';
+    body.style.cssText='padding:8px 10px;display:block';
+
     var lbl=document.createElement('div');
-    lbl.className='fi-label';
+    lbl.style.cssText='font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#7a776e;margin-bottom:4px';
     lbl.textContent='Spoken text — edit if needed';
     body.appendChild(lbl);
+
     var ta=document.createElement('textarea');
-    ta.className='fi-textarea';
+    ta.style.cssText='width:100%;display:block;box-sizing:border-box;font-size:13px;font-family:sans-serif;line-height:1.5;padding:6px 8px;border:1px solid #ddd9d0;border-radius:6px;background:#fff;color:#1a1916;resize:vertical;min-height:52px;margin:0';
     ta.id='st'+i;
-    ta.rows=3;
-    ta.style.cssText='width:100%;font-size:12px;font-family:inherit;border:1px solid #ddd9d0;border-radius:6px;padding:.4rem .6rem;background:#fff;color:#1a1916;resize:vertical;line-height:1.5;min-height:48px;display:block;box-sizing:border-box';
+    ta.rows=2;
     ta.value=autoSpoken[i];
-    (function(textarea,idx){
-      textarea.addEventListener('input',function(){markEdited(textarea,idx)});
-    })(ta,i);
+    (function(t,idx){t.addEventListener('input',function(){
+      t.style.borderColor=t.value.trim()!==autoSpoken[idx]?'#185FA5':'#ddd9d0';
+      t.style.background=t.value.trim()!==autoSpoken[idx]?'#f0f5fc':'#fff';
+    })})(ta,i);
     body.appendChild(ta);
+
     if(mp.warn){
       var warn=document.createElement('div');
-      warn.className='fi-warn show';
-      warn.textContent='⚠ Mixed text+equation detected — check this one before exporting';
+      warn.style.cssText='display:flex;align-items:center;gap:5px;font-size:10.5px;color:#854F0B;background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:4px;padding:3px 8px;margin-top:5px';
+      warn.textContent='⚠ Mixed text+equation — check this before exporting';
       body.appendChild(warn);
     }
+
     card.appendChild(body);
     list.appendChild(card);
   });
+
   document.getElementById('editPanel').classList.add('show');
   setTimeout(function(){document.getElementById('editPanel').scrollIntoView({behavior:'smooth',block:'start'})},100);
 }
@@ -706,16 +717,7 @@ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 async function buildDoc(){
   var texts=storedMathParas.map(function(_,i){var ta=document.getElementById('st'+i);return ta?ta.value.trim():autoSpoken[i]});
   var bi=document.getElementById('optBI').checked;
-  var tight=document.getElementById('optTight').checked;
-  var sz=chosenSize*2,spB=tight?'0':'60',spA=tight?'40':'80';
-
-  function mkPara(text,isList,uid){
-    var b=bi?'<w:b/>':'',it=bi?'<w:i/>':'';
-    var rp=b+it+'<w:color w:val="'+chosenColor+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
-    var pp=isList?'<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr><w:spacing w:before="'+spB+'" w:after="'+spA+'"/><w:rPr>'+rp+'</w:rPr>':'<w:spacing w:before="'+spB+'" w:after="'+spA+'"/><w:rPr>'+rp+'</w:rPr>';
-    var tx=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
-  }
+  var sz=chosenSize*2;
 
   function mkParaWithSpacing(text,isList,uid,spacingAttrs){
     var b=bi?'<w:b/>':'',it=bi?'<w:i/>':'';
@@ -727,76 +729,68 @@ async function buildDoc(){
     return '<w:p w14:paraId="'+uid+'" w14:textId="'+uid+'" w:rsidR="00CF1234" w:rsidRDefault="00CF1234"><w:pPr>'+pp+'</w:pPr><w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve">'+tx+'</w:t></w:r></w:p>';
   }
 
-  // INSERT BEFORE the formula paragraph so the instructor's work-space
-  // (huge line spacing below the formula) stays completely intact for the student.
-  // Layout: [spoken text] → [formula] → [blank work space]
-  var uid=0x5D000001,ins=[];
-  storedMathParas.forEach(function(mp,i){
-    var paraid=mp.paraid;
-    if(!paraid)return;
-    var search='w14:paraId="'+paraid+'"';
-    var paraStart=storedDocXml.indexOf(search);
-    if(paraStart<0)return;
-    // Find the opening <w:p tag for this paragraph
-    var openTag=storedDocXml.lastIndexOf('<w:p ',paraStart);
-    if(openTag<0)return;
-    var ctx=storedDocXml.substring(Math.max(0,openTag-600),openTag);
-    var isList=ctx.includes('ListParagraph');
-    // Spoken para: single line, small spacing — sits tight above the formula
-    var spokenSpacing='w:before="60" w:after="60" w:line="240" w:lineRule="auto"';
-    ins.push({
-      pos:openTag,
-      xml:mkParaWithSpacing(texts[i],isList,uid.toString(16).toUpperCase().padStart(8,'0'),spokenSpacing)+'\n',
-      paraid:paraid
-    });
-    uid++;
-  });
+  // Step 1: Normalize formula paragraph line spacing to single
+  // (instructor used huge line spacing for work space, but this is read-aloud-only)
   var patchedXml=storedDocXml;
-  var patchList=ins.slice().sort(function(a,b){return b.paraStart-a.paraStart});
-  patchList.forEach(function(ins){
-    var formulaXml=patchedXml.substring(ins.paraStart-60,ins.closeIdx+6);
-    // Add/replace spacing to set after=0, keeping the line spacing for the paragraph itself
-    // This removes the huge gap after the formula before our spoken text
-    var pPrEnd=formulaXml.indexOf('</w:pPr>');
-    if(pPrEnd<0)return;
-    var absStart=ins.paraStart-60;
-    var absPPrEnd=absStart+pPrEnd;
-    
-    // Check if there's already a spacing element
-    var spacingMatch=formulaXml.match(/(<w:spacing[^/]*)(\/>|>)/);
-    if(spacingMatch){
-      // Add w:after="0" to existing spacing element
-      var existingSpacing=spacingMatch[0];
-      var newSpacing=existingSpacing.replace(/(w:after="[^"]*")/,'w:after="0"');
-      if(!newSpacing.includes('w:after="0"')){
-        // No after attr yet — add it
-        newSpacing=existingSpacing.replace('<w:spacing','<w:spacing w:after="0"');
-      }
-      var origPos=patchedXml.indexOf(existingSpacing,ins.paraStart-60);
-      if(origPos>=0&&origPos<ins.closeIdx){
-        patchedXml=patchedXml.slice(0,origPos)+newSpacing+patchedXml.slice(origPos+existingSpacing.length);
-      }
+  var patchItems=storedMathParas.map(function(mp){
+    var paraid=mp.paraid;
+    if(!paraid)return null;
+    var search='w14:paraId="'+paraid+'"';
+    var paraStart=patchedXml.indexOf(search);
+    if(paraStart<0)return null;
+    var closeIdx=patchedXml.indexOf('</w:p>',paraStart);
+    if(closeIdx<0)return null;
+    return {paraid:paraid,paraStart:paraStart,closeIdx:closeIdx};
+  }).filter(Boolean);
+
+  // Patch in reverse order so positions stay valid
+  patchItems.slice().sort(function(a,b){return b.paraStart-a.paraStart}).forEach(function(item){
+    var formulaXml=patchedXml.substring(item.paraStart,item.closeIdx);
+    var spStart=formulaXml.indexOf('<w:spacing ');
+    var spEnd=spStart>=0?formulaXml.indexOf('/>',spStart):-1;
+    var normalSpacing='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
+    if(spStart>=0&&spEnd>=0){
+      var existing=formulaXml.substring(spStart,spEnd+2);
+      var origPos=patchedXml.indexOf(existing,item.paraStart);
+      if(origPos>=0&&origPos<item.closeIdx)
+        patchedXml=patchedXml.slice(0,origPos)+normalSpacing+patchedXml.slice(origPos+existing.length);
     } else {
-      // No spacing element — insert one before </w:pPr>
-      var insertAt=patchedXml.indexOf('</w:pPr>',ins.paraStart-60);
-      if(insertAt>=0&&insertAt<ins.closeIdx+100){
-        patchedXml=patchedXml.slice(0,insertAt)+'<w:spacing w:after="0"/>'+patchedXml.slice(insertAt);
-      }
+      var insertAt=patchedXml.indexOf('</w:pPr>',item.paraStart);
+      if(insertAt>=0&&insertAt<item.closeIdx+100)
+        patchedXml=patchedXml.slice(0,insertAt)+normalSpacing+patchedXml.slice(insertAt);
     }
   });
-  // Apply insertions in reverse position order so earlier positions stay valid
+
+  // Step 2: Build spoken paragraphs to insert after each formula
+  var uid=0x5D000001;
+  var ins=patchItems.map(function(item,i){
+    var search='w14:paraId="'+item.paraid+'"';
+    var paraStart=patchedXml.indexOf(search);
+    if(paraStart<0)return null;
+    var closeIdx=patchedXml.indexOf('</w:p>',paraStart);
+    if(closeIdx<0)return null;
+    var pos=closeIdx+'</w:p>'.length;
+    var ctx=patchedXml.substring(Math.max(0,closeIdx-800),closeIdx);
+    var isList=ctx.includes('ListParagraph');
+    var spokenSpacing='w:before="0" w:after="120" w:line="240" w:lineRule="auto"';
+    var paraXml=mkParaWithSpacing(texts[i],isList,(uid++).toString(16).toUpperCase().padStart(8,'0'),spokenSpacing)+'\n';
+    return {pos:pos,xml:paraXml};
+  }).filter(Boolean);
+
+  // Step 3: Insert in reverse order
   ins.sort(function(a,b){return b.pos-a.pos});
   var newXml=patchedXml;
   for(var i=0;i<ins.length;i++){
     newXml=newXml.slice(0,ins[i].pos)+ins[i].xml+newXml.slice(ins[i].pos);
   }
+
   storedZip.file('word/document.xml',newXml);
   var blob=await storedZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
   storedZip.file('word/document.xml',storedDocXml);
   var url=URL.createObjectURL(blob);
   var name=currentFile.name.replace(/\.docx$/,'')+'_ReadAloud.docx';
   var dl=document.getElementById('dlBtn');dl.href=url;dl.download=name;
-  document.getElementById('dlInfo').textContent=storedMathParas.length+' formula'+(storedMathParas.length!==1?'s':'')+' inserted → '+name;
+  document.getElementById('dlInfo').textContent=storedMathParas.length+' formula'+(storedMathParas.length!==1?'s':'')+' inserted \u2192 '+name;
   document.getElementById('dlRow').classList.add('show');
   document.getElementById('dlRow').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
