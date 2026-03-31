@@ -55,12 +55,12 @@ h1 em{font-style:italic;color:var(--accent)}
 .edit-title{font-size:13px;font-weight:600}
 .edit-count{font-size:12px;color:var(--muted)}
 .edit-note{font-size:12px;color:var(--muted);background:var(--surface2);border:0.5px solid var(--border);border-radius:6px;padding:.5rem .8rem;margin-bottom:.9rem;line-height:1.5}
-.formula-list{display:flex;flex-direction:column;gap:6px;max-height:500px;overflow-y:auto;padding-right:4px}
+.formula-list{display:flex;flex-direction:column;gap:6px;max-height:600px;overflow-y:auto;padding-right:4px}
 .formula-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .fi-top{display:flex;align-items:flex-start;gap:8px;padding:.5rem .8rem;background:var(--surface2);border-bottom:1px solid var(--border)}
 .fi-num{font-size:10px;font-weight:700;color:var(--muted);min-width:24px;padding-top:1px}
 .fi-formula{font-family:var(--mono);font-size:10.5px;color:var(--text);flex:1;word-break:break-word;line-height:1.4}
-.fi-body{padding:.55rem .8rem}
+.fi-body{padding:.55rem .8rem;display:block!important}
 .fi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem}
 .fi-textarea{width:100%;font-size:12px;font-family:var(--sans);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;background:var(--surface);color:var(--text);resize:none;line-height:1.5;min-height:36px}
 .fi-textarea:focus{outline:none;border-color:var(--accent)}
@@ -676,16 +676,16 @@ function renderEditPanel(){
     card.appendChild(hdr);
 
     // Body
-    var body=document.createElement('div');
-    body.style.cssText='padding:8px 10px;display:block';
+    var cardBody=document.createElement('div');
+    cardBody.style.cssText='padding:8px 10px;display:block!important;visibility:visible!important;overflow:visible!important';
 
     var lbl=document.createElement('div');
     lbl.style.cssText='font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#7a776e;margin-bottom:4px';
     lbl.textContent='Spoken text — edit if needed';
-    body.appendChild(lbl);
+    cardBody.appendChild(lbl);
 
     var ta=document.createElement('textarea');
-    ta.style.cssText='width:100%;display:block;box-sizing:border-box;font-size:13px;font-family:sans-serif;line-height:1.5;padding:6px 8px;border:1px solid #ddd9d0;border-radius:6px;background:#fff;color:#1a1916;resize:vertical;min-height:52px;margin:0';
+    ta.style.cssText='width:100%;display:block!important;box-sizing:border-box;font-size:13px;font-family:sans-serif;line-height:1.5;padding:6px 8px;border:1px solid #ddd9d0;border-radius:6px;background:#fff;color:#1a1916;resize:vertical;min-height:52px;height:52px;margin:0;overflow:auto';
     ta.id='st'+i;
     ta.rows=2;
     ta.value=autoSpoken[i];
@@ -693,16 +693,16 @@ function renderEditPanel(){
       t.style.borderColor=t.value.trim()!==autoSpoken[idx]?'#185FA5':'#ddd9d0';
       t.style.background=t.value.trim()!==autoSpoken[idx]?'#f0f5fc':'#fff';
     })})(ta,i);
-    body.appendChild(ta);
+    cardBody.appendChild(ta);
 
     if(mp.warn){
       var warn=document.createElement('div');
       warn.style.cssText='display:flex;align-items:center;gap:5px;font-size:10.5px;color:#854F0B;background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:4px;padding:3px 8px;margin-top:5px';
       warn.textContent='⚠ Mixed text+equation — check this before exporting';
-      body.appendChild(warn);
+      cardBody.appendChild(warn);
     }
 
-    card.appendChild(body);
+    card.appendChild(cardBody);
     list.appendChild(card);
   });
 
