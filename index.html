@@ -660,50 +660,39 @@ function renderEditPanel(){
   var warnCount=storedMathParas.filter(function(mp){return mp.warn}).length;
   document.getElementById('editCount').textContent=storedMathParas.length+' formula'+(storedMathParas.length!==1?'s':'')+
     (warnCount?' — '+warnCount+' need review':'');
-  var list=document.getElementById('formulaList');
-  list.innerHTML='';
 
+  var html='';
   storedMathParas.forEach(function(mp,i){
-    // Outer card
-    var card=document.createElement('div');
-    card.style.cssText='background:#fff;border:1px solid '+(mp.warn?'#EF9F27':'#ddd9d0')+';border-radius:8px;overflow:hidden;margin-bottom:6px';
+    var warn=mp.warn;
+    var hdrBg=warn?'#FAEEDA':'#f0ede6';
+    var border=warn?'#EF9F27':'#ddd9d0';
+    var warnHtml=warn?'<div style="font-size:10.5px;color:#854F0B;background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:4px;padding:3px 8px;margin-top:5px">⚠ Mixed text+equation — check before exporting</div>':'';
+    var txt=esc(autoSpoken[i]);
+    html+='<div style="border:1px solid '+border+';border-radius:8px;overflow:hidden;margin-bottom:6px">'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+hdrBg+';border-bottom:1px solid '+border+'">'
+      +'<span style="font-size:10px;font-weight:700;color:#7a776e;min-width:26px">#'+(i+1)+'</span>'
+      +'<span style="font-size:10.5px;font-family:monospace;color:#1a1916">Para '+(mp.idx+1)+(warn?' ⚠':'')+'</span>'
+      +'</div>'
+      +'<div style="padding:8px 10px">'
+      +'<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#7a776e;margin-bottom:4px">Spoken text — edit if needed</div>'
+      +'<textarea id="st'+i+'" rows="3" style="width:100%;font-size:13px;font-family:sans-serif;padding:5px 8px;border:1px solid #ddd9d0;border-radius:5px;background:#fff;color:#1a1916;resize:vertical;box-sizing:border-box;display:block">'+txt+'</textarea>'
+      +warnHtml
+      +'</div>'
+      +'</div>';
+  });
 
-    // Header
-    var hdr=document.createElement('div');
-    hdr.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+(mp.warn?'#FAEEDA':'#f0ede6')+';border-bottom:1px solid '+(mp.warn?'#EF9F27':'#ddd9d0');
-    hdr.innerHTML='<span style="font-size:10px;font-weight:700;color:#7a776e;min-width:26px">#'+(i+1)+'</span>'
-      +'<span style="font-size:10.5px;font-family:monospace;color:#1a1916;flex:1">Para '+(mp.idx+1)+(mp.warn?' ⚠':'')+'</span>';
-    card.appendChild(hdr);
+  document.getElementById('formulaList').innerHTML=html;
 
-    // Body
-    var cardBody=document.createElement('div');
-    cardBody.style.cssText='padding:8px 10px;display:block!important;visibility:visible!important;overflow:visible!important';
-
-    var lbl=document.createElement('div');
-    lbl.style.cssText='font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#7a776e;margin-bottom:4px';
-    lbl.textContent='Spoken text — edit if needed';
-    cardBody.appendChild(lbl);
-
-    var ta=document.createElement('textarea');
-    ta.style.cssText='width:100%;display:block!important;box-sizing:border-box;font-size:13px;font-family:sans-serif;line-height:1.5;padding:6px 8px;border:1px solid #ddd9d0;border-radius:6px;background:#fff;color:#1a1916;resize:vertical;min-height:52px;height:52px;margin:0;overflow:auto';
-    ta.id='st'+i;
-    ta.rows=2;
-    ta.value=autoSpoken[i];
-    (function(t,idx){t.addEventListener('input',function(){
-      t.style.borderColor=t.value.trim()!==autoSpoken[idx]?'#185FA5':'#ddd9d0';
-      t.style.background=t.value.trim()!==autoSpoken[idx]?'#f0f5fc':'#fff';
-    })})(ta,i);
-    cardBody.appendChild(ta);
-
-    if(mp.warn){
-      var warn=document.createElement('div');
-      warn.style.cssText='display:flex;align-items:center;gap:5px;font-size:10.5px;color:#854F0B;background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:4px;padding:3px 8px;margin-top:5px';
-      warn.textContent='⚠ Mixed text+equation — check this before exporting';
-      cardBody.appendChild(warn);
-    }
-
-    card.appendChild(cardBody);
-    list.appendChild(card);
+  // Attach change listeners after innerHTML is set
+  storedMathParas.forEach(function(mp,i){
+    var ta=document.getElementById('st'+i);
+    if(!ta)return;
+    (function(t,idx){
+      t.addEventListener('input',function(){
+        t.style.borderColor=t.value.trim()!==autoSpoken[idx]?'#185FA5':'#ddd9d0';
+        t.style.background=t.value.trim()!==autoSpoken[idx]?'#f0f5fc':'#fff';
+      });
+    })(ta,i);
   });
 
   document.getElementById('editPanel').classList.add('show');
