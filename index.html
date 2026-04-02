@@ -6,812 +6,588 @@
 <title>Math Read Aloud — OARS</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Lato:ital,wght@0,300;0,400;0,700;1,300&display=swap');
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #F7F5F0;
-  --card: #FFFFFF;
-  --border: #E2DDD6;
-  --text: #18160F;
-  --muted: #8C8880;
-  --green: #1B4332;
-  --green-light: #EAF2ED;
-  --green-mid: #2D6A4F;
-  --amber: #92400E;
-  --amber-bg: #FEF3C7;
-  --amber-border: #F59E0B;
-  --blue: #1E3A5F;
-  --blue-bg: #EFF6FF;
-  --red: #991B1B;
-  --red-bg: #FEF2F2;
-}
-
-html, body { min-height: 100vh; background: var(--bg); font-family: 'Lato', sans-serif; color: var(--text); }
-
-.wrap { max-width: 780px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
-
-/* Header */
-header { margin-bottom: 2.5rem; }
-.eyebrow { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--green-mid); margin-bottom: .6rem; }
-h1 { font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800; line-height: 1.05; color: var(--text); }
-h1 span { color: var(--green-mid); }
-.tagline { margin-top: .5rem; font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 520px; }
-
-/* Cards */
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.4rem; margin-bottom: 1rem; }
-.card-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .9rem; }
-
-/* Upload zone */
-.drop { border: 2px dashed var(--border); border-radius: 10px; padding: 2rem 1.5rem; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg); position: relative; }
-.drop:hover, .drop.over { border-color: var(--green-mid); background: var(--green-light); }
-.drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.drop-icon { font-size: 1.8rem; margin-bottom: .4rem; }
-.drop-main { font-size: 14px; font-weight: 700; margin-bottom: .2rem; }
-.drop-sub { font-size: 12px; color: var(--muted); }
-.file-pill { display: none; align-items: center; gap: 8px; background: var(--green-light); border: 1px solid var(--green-mid); border-radius: 8px; padding: .55rem .9rem; margin-top: .8rem; font-size: 12px; }
-.file-pill.show { display: flex; }
-.file-pill .name { font-family: 'DM Mono', monospace; color: var(--green); font-weight: 500; flex: 1; word-break: break-all; }
-.file-pill button { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 13px; padding: 2px 4px; border-radius: 3px; }
-.file-pill button:hover { background: var(--border); }
-
-/* Style controls */
-.controls { display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: flex-start; }
-.ctrl-group { display: flex; flex-direction: column; gap: .4rem; }
-.ctrl-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
-.color-row { display: flex; gap: 5px; }
-.color-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: border-color .15s; }
-.color-btn.active { border-color: var(--text) !important; }
-.size-row { display: flex; gap: 4px; }
-.size-btn { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: var(--card); color: var(--text); font-family: 'DM Mono', monospace; transition: all .15s; }
-.size-btn:hover { border-color: var(--green-mid); }
-.size-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
-.check-label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-.check-label input { accent-color: var(--green-mid); width: 14px; height: 14px; }
-
-/* Go button */
-.btn-go { width: 100%; padding: .9rem; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; background: var(--green); border: none; border-radius: 10px; cursor: pointer; margin-top: 1rem; transition: background .2s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: .02em; }
-.btn-go:hover:not(:disabled) { background: var(--green-mid); }
-.btn-go:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
-
-/* Progress */
-.prog-wrap { display: none; margin-top: 1rem; }
-.prog-wrap.show { display: block; }
-.prog-bar-bg { background: var(--border); border-radius: 4px; height: 3px; overflow: hidden; margin-bottom: .4rem; }
-.prog-bar { height: 100%; background: var(--green-mid); border-radius: 4px; transition: width .3s; width: 0%; }
-.prog-label { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
-
-/* Error */
-.err-box { display: none; background: var(--red-bg); border: 1px solid #FCA5A5; border-radius: 8px; padding: .75rem 1rem; margin-top: .8rem; font-size: 13px; color: var(--red); }
-.err-box.show { display: block; }
-
-/* Review panel */
-.review { display: none; margin-top: 1rem; }
-.review.show { display: block; }
-.review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
-.review-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; }
-.review-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
-.review-note { font-size: 12.5px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: .6rem .9rem; margin-bottom: .9rem; line-height: 1.6; }
-.review-note strong { color: var(--amber); }
-
-.formula-list { display: flex; flex-direction: column; gap: 5px; max-height: 560px; overflow-y: auto; }
-
-/* Formula card — using table layout so body always renders */
-.fc { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--card); }
-.fc.warn { border-color: var(--amber-border); }
-.fc-head { display: flex; align-items: center; gap: 8px; padding: 5px 10px; background: var(--bg); border-bottom: 1px solid var(--border); }
-.fc.warn .fc-head { background: var(--amber-bg); border-bottom-color: var(--amber-border); }
-.fc-num { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: var(--muted); min-width: 28px; }
-.fc-para { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text); flex: 1; }
-.fc-body { padding: 7px 10px; }
-.fc-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 4px; }
-.fc textarea { width: 100%; font-size: 13px; font-family: 'Lato', sans-serif; line-height: 1.55; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); resize: vertical; min-height: 48px; display: block; box-sizing: border-box; }
-.fc textarea:focus { outline: none; border-color: var(--green-mid); }
-.fc textarea.edited { border-color: #3B82F6; background: var(--blue-bg); }
-.fc-warn-msg { font-size: 10.5px; color: var(--amber); margin-top: 5px; }
-
-.review-actions { display: flex; gap: .7rem; margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--border); }
-.btn-export { flex: 1; padding: .75rem; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #fff; background: var(--green); border: none; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background .2s; }
-.btn-export:hover { background: var(--green-mid); }
-.btn-reset { padding: .75rem 1rem; font-family: 'Lato', sans-serif; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: 9px; cursor: pointer; }
-.btn-reset:hover { background: var(--bg); }
-
-.dl-row { display: none; align-items: center; gap: 10px; margin-top: .8rem; padding: .8rem 1rem; background: var(--green-light); border: 1px solid var(--green-mid); border-radius: 9px; }
-.dl-row.show { display: flex; }
-.btn-dl { display: inline-flex; align-items: center; gap: 6px; padding: .5rem 1rem; background: var(--green); color: #fff; border: none; border-radius: 7px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
-.dl-info { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; flex: 1; }
-
-/* Reference */
-.ref { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
-.ref h2 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: .8rem; }
-.ref-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: .8rem; }
-.ref-tab { font-size: 11px; padding: 5px 10px; border: none; background: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'DM Mono', monospace; }
-.ref-tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--green-mid); }
-.ref-panel { display: none; }
-.ref-panel.active { display: block; }
-.conv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.conv { display: flex; gap: 6px; align-items: flex-start; font-size: 11px; padding: 4px 6px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; }
-.csym { font-family: 'DM Mono', monospace; font-size: 9.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: #8B4513; flex-shrink: 0; white-space: nowrap; }
-.carr { color: var(--muted); flex-shrink: 0; font-size: 10px; margin-top: 1px; }
-.cspk { font-style: italic; color: var(--muted); font-size: 10.5px; line-height: 1.4; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F5F0;--card:#fff;--border:#E2DDD6;--text:#18160F;--muted:#8C8880;--green:#1B4332;--gl:#EAF2ED;--gm:#2D6A4F;--amber:#92400E;--ab:#FEF3C7;--abr:#F59E0B;--red:#991B1B;--rb:#FEF2F2}
+html,body{min-height:100vh;background:var(--bg);font-family:'Lato',sans-serif;color:var(--text)}
+.wrap{max-width:760px;margin:0 auto;padding:3rem 1.5rem 6rem}
+header{margin-bottom:2rem}
+.eye{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gm);margin-bottom:.5rem}
+h1{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;line-height:1.05}
+h1 span{color:var(--gm)}
+.tag{margin-top:.4rem;font-size:13.5px;color:var(--muted);line-height:1.6;max-width:540px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.3rem;margin-bottom:1rem}
+.clbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem}
+.drop{border:2px dashed var(--border);border-radius:10px;padding:1.8rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);position:relative}
+.drop:hover,.drop.over{border-color:var(--gm);background:var(--gl)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-i{font-size:1.6rem;margin-bottom:.3rem}
+.drop-m{font-size:13.5px;font-weight:700}
+.drop-s{font-size:12px;color:var(--muted);margin-top:.2rem}
+.fpill{display:none;align-items:center;gap:8px;background:var(--gl);border:1px solid var(--gm);border-radius:7px;padding:.5rem .9rem;margin-top:.7rem;font-size:12px}
+.fpill.show{display:flex}
+.fpill .fn{font-family:'DM Mono',monospace;color:var(--green);font-weight:500;flex:1;word-break:break-all}
+.fpill button{background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;border-radius:3px}
+.fpill button:hover{background:var(--border)}
+.ctrls{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start}
+.cg{display:flex;flex-direction:column;gap:.35rem}
+.cg-lbl{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.colors{display:flex;gap:5px}
+.cbtn{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color .15s}
+.cbtn.active{border-color:var(--text)!important}
+.sizes{display:flex;gap:4px}
+.sbtn{font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--card);color:var(--text);font-family:'DM Mono',monospace;transition:all .15s}
+.sbtn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--gm);width:14px;height:14px}
+.btn-go{width:100%;padding:.85rem;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;background:var(--green);border:none;border-radius:10px;cursor:pointer;margin-top:1rem;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.02em}
+.btn-go:hover:not(:disabled){background:var(--gm)}
+.btn-go:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+.prog{display:none;margin-top:1rem}
+.prog.show{display:block}
+.pb-bg{background:var(--border);border-radius:4px;height:3px;overflow:hidden;margin-bottom:.4rem}
+.pb{height:100%;background:var(--gm);border-radius:4px;transition:width .3s;width:0%}
+.pl{font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace}
+.err{display:none;background:var(--rb);border:1px solid #FCA5A5;border-radius:8px;padding:.7rem 1rem;margin-top:.7rem;font-size:13px;color:var(--red)}
+.err.show{display:block}
+.review{display:none;margin-top:1rem}
+.review.show{display:block}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.rt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
+.rc{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.rnote{font-size:12.5px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:.55rem .85rem;margin-bottom:.85rem;line-height:1.6}
+.rnote strong{color:var(--amber)}
+.flist{display:flex;flex-direction:column;gap:5px;max-height:560px;overflow-y:auto}
+.fc{border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--card)}
+.fc.warn{border-color:var(--abr)}
+.fch{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg);border-bottom:1px solid var(--border)}
+.fc.warn .fch{background:var(--ab);border-bottom-color:var(--abr)}
+.fcn{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--muted);min-width:28px}
+.fcp{font-family:'DM Mono',monospace;font-size:10px;color:var(--text);flex:1}
+.fcb{padding:7px 10px}
+.fcl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px}
+.fc textarea{width:100%;font-size:13px;font-family:'Lato',sans-serif;line-height:1.55;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);resize:vertical;min-height:46px;display:block;box-sizing:border-box}
+.fc textarea:focus{outline:none;border-color:var(--gm)}
+.fc textarea.ed{border-color:#3B82F6;background:#EFF6FF}
+.fcw{font-size:10.5px;color:var(--amber);margin-top:5px}
+.ract{display:flex;gap:.7rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border)}
+.btn-exp{flex:1;padding:.7rem;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;background:var(--green);border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s}
+.btn-exp:hover{background:var(--gm)}
+.btn-rst{padding:.7rem 1rem;font-family:'Lato',sans-serif;font-size:13px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:9px;cursor:pointer}
+.btn-rst:hover{background:var(--bg)}
+.dlrow{display:none;align-items:center;gap:10px;margin-top:.8rem;padding:.75rem 1rem;background:var(--gl);border:1px solid var(--gm);border-radius:9px}
+.dlrow.show{display:flex}
+.btn-dl{display:inline-flex;align-items:center;gap:6px;padding:.45rem 1rem;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.dli{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;flex:1}
+/* Hidden MathJax rendering area */
+#mjax-area{position:absolute;left:-9999px;top:-9999px;visibility:hidden;width:800px}
 </style>
 </head>
 <body>
+<div id="mjax-area"></div>
 <div class="wrap">
 
 <header>
-  <div class="eyebrow">OARS · HPU · Accessibility Tool</div>
+  <div class="eye">OARS · HPU · Accessibility Tool</div>
   <h1>Math <span>Read Aloud</span></h1>
-  <p class="tagline">Upload a Word exam. The tool converts every equation to spoken math text, hides the OMML formula from Read Aloud, and exports a clean .docx — student sees the formula, Word reads it correctly.</p>
+  <p class="tag">Converts Word exam equations to images + spoken text. Student sees the formula image. Word reads only the spoken text. No double-reading.</p>
 </header>
 
-<!-- Upload -->
 <div class="card">
-  <div class="card-label">Document</div>
+  <div class="clbl">Document</div>
   <div class="drop" id="drop">
     <input type="file" id="fileIn" accept=".docx">
-    <div class="drop-icon">📄</div>
-    <div class="drop-main">Drop .docx here or click to browse</div>
-    <div class="drop-sub">Word exam with equation editor formulas</div>
+    <div class="drop-i">📄</div>
+    <div class="drop-m">Drop .docx here or click to browse</div>
+    <div class="drop-s">Word exam with equation editor formulas</div>
   </div>
-  <div class="file-pill" id="filePill">
-    <span>📝</span>
-    <span class="name" id="fileName"></span>
+  <div class="fpill" id="fpill">
+    <span>📝</span><span class="fn" id="fn"></span>
     <button onclick="clearFile()">✕</button>
   </div>
-  <div class="err-box" id="errBox"></div>
+  <div class="err" id="err"></div>
 </div>
 
-<!-- Style -->
 <div class="card">
-  <div class="card-label">Spoken Text Style</div>
-  <div class="controls">
-    <div class="ctrl-group">
-      <div class="ctrl-label">Color</div>
-      <div class="color-row" id="colorRow">
-        <button class="color-btn active" style="background:#7a776e" title="Gray" onclick="setColor(this,'7A776E')"></button>
-        <button class="color-btn" style="background:#1B4332" title="Dark green" onclick="setColor(this,'1B4332')"></button>
-        <button class="color-btn" style="background:#1E3A5F" title="Navy" onclick="setColor(this,'1E3A5F')"></button>
-        <button class="color-btn" style="background:#7C2D12" title="Brown" onclick="setColor(this,'7C2D12')"></button>
-        <button class="color-btn" style="background:#111" title="Black" onclick="setColor(this,'111111')"></button>
+  <div class="clbl">Spoken Text Style</div>
+  <div class="ctrls">
+    <div class="cg">
+      <div class="cg-lbl">Color</div>
+      <div class="colors" id="colors">
+        <button class="cbtn active" style="background:#7a776e" onclick="setC(this,'7A776E')"></button>
+        <button class="cbtn" style="background:#1B4332" onclick="setC(this,'1B4332')"></button>
+        <button class="cbtn" style="background:#1E3A5F" onclick="setC(this,'1E3A5F')"></button>
+        <button class="cbtn" style="background:#7C2D12" onclick="setC(this,'7C2D12')"></button>
+        <button class="cbtn" style="background:#111" onclick="setC(this,'111111')"></button>
       </div>
     </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">Size (pt)</div>
-      <div class="size-row" id="sizeRow">
-        <button class="size-btn" onclick="setSize(this,9)">9</button>
-        <button class="size-btn active" onclick="setSize(this,10)">10</button>
-        <button class="size-btn" onclick="setSize(this,11)">11</button>
-        <button class="size-btn" onclick="setSize(this,12)">12</button>
+    <div class="cg">
+      <div class="cg-lbl">Size</div>
+      <div class="sizes" id="sizes">
+        <button class="sbtn" onclick="setS(this,9)">9pt</button>
+        <button class="sbtn active" onclick="setS(this,10)">10pt</button>
+        <button class="sbtn" onclick="setS(this,11)">11pt</button>
+        <button class="sbtn" onclick="setS(this,12)">12pt</button>
       </div>
     </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">Format</div>
-      <label class="check-label"><input type="checkbox" id="optBold" checked> Bold</label>
-      <label class="check-label"><input type="checkbox" id="optItalic" checked> Italic</label>
+    <div class="cg">
+      <div class="cg-lbl">Format</div>
+      <label class="chk"><input type="checkbox" id="optB" checked> Bold</label>
+      <label class="chk"><input type="checkbox" id="optI" checked> Italic</label>
     </div>
   </div>
 </div>
 
 <button class="btn-go" id="btnGo" onclick="run()" disabled>⚡ Extract &amp; Review</button>
-<div class="prog-wrap" id="prog">
-  <div class="prog-bar-bg"><div class="prog-bar" id="progBar"></div></div>
-  <div class="prog-label" id="progLabel">Loading…</div>
+<div class="prog" id="prog">
+  <div class="pb-bg"><div class="pb" id="pb"></div></div>
+  <div class="pl" id="pl">Loading…</div>
 </div>
 
-<!-- Review panel -->
 <div class="review" id="review">
   <div class="card">
-    <div class="review-header">
-      <span class="review-title">Review Spoken Text</span>
-      <span class="review-count" id="reviewCount"></span>
+    <div class="rh">
+      <span class="rt">Review Spoken Text</span>
+      <span class="rc" id="rc"></span>
     </div>
-    <div class="review-note">
-      Edit any line before exporting. <strong>⚠ Yellow</strong> = mixed plain-text + equation in one paragraph — check these carefully.
-    </div>
-    <div class="formula-list" id="formulaList"></div>
-    <div class="review-actions">
-      <button class="btn-reset" onclick="resetAll()">↺ Reset all</button>
-      <button class="btn-export" onclick="buildDoc()">⬇ Export .docx</button>
+    <div class="rnote">Edit any line before exporting. <strong>⚠ Yellow</strong> = mixed plain-text + equation — verify these.</div>
+    <div class="flist" id="flist"></div>
+    <div class="ract">
+      <button class="btn-rst" onclick="resetAll()">↺ Reset all</button>
+      <button class="btn-exp" onclick="buildDoc()">⬇ Export .docx</button>
     </div>
   </div>
-  <div class="dl-row" id="dlRow">
-    <a class="btn-dl" id="dlBtn" href="#">⬇ Download</a>
-    <span class="dl-info" id="dlInfo"></span>
+  <div class="dlrow" id="dlrow">
+    <a class="btn-dl" id="dlbtn" href="#">⬇ Download</a>
+    <span class="dli" id="dli"></span>
   </div>
 </div>
 
-<!-- Reference -->
-<div class="ref">
-  <h2>Spoken math conventions</h2>
-  <div class="ref-tabs">
-    <button class="ref-tab active" onclick="showTab(this,'exp')">Exponents</button>
-    <button class="ref-tab" onclick="showTab(this,'frac')">Fractions</button>
-    <button class="ref-tab" onclick="showTab(this,'root')">Roots</button>
-    <button class="ref-tab" onclick="showTab(this,'trig')">Trig</button>
-    <button class="ref-tab" onclick="showTab(this,'log')">Logs</button>
-    <button class="ref-tab" onclick="showTab(this,'deriv')">Derivatives</button>
-    <button class="ref-tab" onclick="showTab(this,'integ')">Integrals</button>
-    <button class="ref-tab" onclick="showTab(this,'lim')">Limits</button>
-    <button class="ref-tab" onclick="showTab(this,'sym')">Symbols</button>
-  </div>
-  <div id="tab-exp" class="ref-panel active"><div class="conv-grid">
-    <div class="conv"><span class="csym">x²</span><span class="carr">→</span><span class="cspk">x squared</span></div>
-    <div class="conv"><span class="csym">x³</span><span class="carr">→</span><span class="cspk">x cubed</span></div>
-    <div class="conv"><span class="csym">x⁴</span><span class="carr">→</span><span class="cspk">x to the fourth power</span></div>
-    <div class="conv"><span class="csym">x⁰</span><span class="carr">→</span><span class="cspk">x to the zero power</span></div>
-    <div class="conv"><span class="csym">x⁻¹</span><span class="carr">→</span><span class="cspk">x to the negative 1</span></div>
-    <div class="conv"><span class="csym">x⁻²</span><span class="carr">→</span><span class="cspk">x to the negative 2</span></div>
-    <div class="conv"><span class="csym">(3x+4)²</span><span class="carr">→</span><span class="cspk">the quantity 3 x plus 4, end quantity, squared</span></div>
-    <div class="conv"><span class="csym">eˣ</span><span class="carr">→</span><span class="cspk">e to the x</span></div>
-    <div class="conv"><span class="csym">f⁻¹(x)</span><span class="carr">→</span><span class="cspk">f inverse of x</span></div>
-  </div></div>
-  <div id="tab-frac" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">a/b</span><span class="carr">→</span><span class="cspk">a over b</span></div>
-    <div class="conv"><span class="csym">dy/dx</span><span class="carr">→</span><span class="cspk">the derivative of y with respect to x</span></div>
-    <div class="conv"><span class="csym">d/dx[f]</span><span class="carr">→</span><span class="cspk">the derivative with respect to x of f</span></div>
-    <div class="conv"><span class="csym">n choose r</span><span class="carr">→</span><span class="cspk">n choose r</span></div>
-  </div></div>
-  <div id="tab-root" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">√x</span><span class="carr">→</span><span class="cspk">the square root of x</span></div>
-    <div class="conv"><span class="csym">∛x</span><span class="carr">→</span><span class="cspk">the cube root of x</span></div>
-    <div class="conv"><span class="csym">⁴√x</span><span class="carr">→</span><span class="cspk">the fourth root of x</span></div>
-    <div class="conv"><span class="csym">ⁿ√x</span><span class="carr">→</span><span class="cspk">the nth root of x</span></div>
-  </div></div>
-  <div id="tab-trig" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">sin(x)</span><span class="carr">→</span><span class="cspk">sine of x</span></div>
-    <div class="conv"><span class="csym">cos(x)</span><span class="carr">→</span><span class="cspk">cosine of x</span></div>
-    <div class="conv"><span class="csym">tan(x)</span><span class="carr">→</span><span class="cspk">tangent of x</span></div>
-    <div class="conv"><span class="csym">sec, csc, cot</span><span class="carr">→</span><span class="cspk">secant, cosecant, cotangent of x</span></div>
-    <div class="conv"><span class="csym">sin⁻¹(x)</span><span class="carr">→</span><span class="cspk">inverse sine of x</span></div>
-    <div class="conv"><span class="csym">arctan(x)</span><span class="carr">→</span><span class="cspk">arctangent of x</span></div>
-    <div class="conv"><span class="csym">sin²(x)</span><span class="carr">→</span><span class="cspk">sine squared of x</span></div>
-    <div class="conv"><span class="csym">sinh, cosh</span><span class="carr">→</span><span class="cspk">hyperbolic sine/cosine</span></div>
-  </div></div>
-  <div id="tab-log" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">ln(x)</span><span class="carr">→</span><span class="cspk">the natural log of x</span></div>
-    <div class="conv"><span class="csym">log(x)</span><span class="carr">→</span><span class="cspk">log of x</span></div>
-    <div class="conv"><span class="csym">log₂(x)</span><span class="carr">→</span><span class="cspk">log base 2 of x</span></div>
-    <div class="conv"><span class="csym">eˣ</span><span class="carr">→</span><span class="cspk">e to the x</span></div>
-  </div></div>
-  <div id="tab-deriv" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">f′(x)</span><span class="carr">→</span><span class="cspk">f prime of x</span></div>
-    <div class="conv"><span class="csym">f″(x)</span><span class="carr">→</span><span class="cspk">f double prime of x</span></div>
-    <div class="conv"><span class="csym">dy/dx</span><span class="carr">→</span><span class="cspk">the derivative of y with respect to x</span></div>
-    <div class="conv"><span class="csym">d²y/dx²</span><span class="carr">→</span><span class="cspk">the second derivative of y with respect to x</span></div>
-    <div class="conv"><span class="csym">∂f/∂x</span><span class="carr">→</span><span class="cspk">the partial of f with respect to x</span></div>
-    <div class="conv"><span class="csym">∂²f/∂x∂y</span><span class="carr">→</span><span class="cspk">the mixed partial of f with respect to x and y</span></div>
-  </div></div>
-  <div id="tab-integ" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">∫f(x)dx</span><span class="carr">→</span><span class="cspk">the integral of f of x, d x</span></div>
-    <div class="conv"><span class="csym">∫ₐᵇ f(x)dx</span><span class="carr">→</span><span class="cspk">the integral from a to b of f of x, d x</span></div>
-    <div class="conv"><span class="csym">∬, ∭</span><span class="carr">→</span><span class="cspk">the double / triple integral</span></div>
-    <div class="conv"><span class="csym">∑ from n=1 to ∞</span><span class="carr">→</span><span class="cspk">the sum from n equals 1 to infinity</span></div>
-  </div></div>
-  <div id="tab-lim" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">lim x→a</span><span class="carr">→</span><span class="cspk">the limit as x approaches a</span></div>
-    <div class="conv"><span class="csym">lim x→∞</span><span class="carr">→</span><span class="cspk">the limit as x approaches infinity</span></div>
-    <div class="conv"><span class="csym">lim x→0⁺</span><span class="carr">→</span><span class="cspk">the limit as x approaches 0 from the right</span></div>
-    <div class="conv"><span class="csym">lim x→0⁻</span><span class="carr">→</span><span class="cspk">the limit as x approaches 0 from the left</span></div>
-  </div></div>
-  <div id="tab-sym" class="ref-panel"><div class="conv-grid">
-    <div class="conv"><span class="csym">±</span><span class="carr">→</span><span class="cspk">plus or minus</span></div>
-    <div class="conv"><span class="csym">∞</span><span class="carr">→</span><span class="cspk">infinity</span></div>
-    <div class="conv"><span class="csym">≤ / ≥</span><span class="carr">→</span><span class="cspk">less than or equal to / greater than or equal to</span></div>
-    <div class="conv"><span class="csym">≠ / ≈</span><span class="carr">→</span><span class="cspk">not equal to / approximately equal to</span></div>
-    <div class="conv"><span class="csym">|x|</span><span class="carr">→</span><span class="cspk">the absolute value of x</span></div>
-    <div class="conv"><span class="csym">π / θ / Δ</span><span class="carr">→</span><span class="cspk">pi / theta / delta</span></div>
-    <div class="conv"><span class="csym">∈ / ∪ / ∩</span><span class="carr">→</span><span class="cspk">element of / union / intersection</span></div>
-    <div class="conv"><span class="csym">∂</span><span class="carr">→</span><span class="cspk">partial</span></div>
-  </div></div>
 </div>
 
-</div><!-- end wrap -->
-
+<!-- MathJax for rendering equations as SVG -->
+<script>
+window.MathJax = {
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/mml-svg.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 'use strict';
 
-// ─── State ───────────────────────────────────────────────────────────────────
-var gFile = null, gZip = null, gDocXml = null;
-var gParas = [], gSpoken = [], gColor = '7A776E', gSize = 10;
+var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gOmml=[],gColor='7A776E',gSize=10;
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────
-var drop = document.getElementById('drop');
-var fileIn = document.getElementById('fileIn');
-
-drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('over'); });
-drop.addEventListener('dragleave', function(){ drop.classList.remove('over'); });
-drop.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
-fileIn.addEventListener('change', function(){ if(fileIn.files[0]) setFile(fileIn.files[0]); });
+// ─── File handling ────────────────────────────────────────────────────────────
+var drop=document.getElementById('drop'),fi=document.getElementById('fileIn');
+drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('over')});
+drop.addEventListener('dragleave',function(){drop.classList.remove('over')});
+drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0])});
+fi.addEventListener('change',function(){if(fi.files[0])setFile(fi.files[0])});
 
 function setFile(f){
-  if(!f.name.match(/\.docx$/i)){ showErr('Please upload a .docx file.'); return; }
-  gFile = f;
-  document.getElementById('fileName').textContent = f.name;
-  document.getElementById('filePill').classList.add('show');
-  document.getElementById('btnGo').disabled = false;
-  document.getElementById('errBox').classList.remove('show');
+  if(!f.name.match(/\.docx$/i)){showErr('Please upload a .docx file.');return}
+  gFile=f;document.getElementById('fn').textContent=f.name;
+  document.getElementById('fpill').classList.add('show');
+  document.getElementById('btnGo').disabled=false;
+  document.getElementById('err').classList.remove('show');
   document.getElementById('review').classList.remove('show');
-  document.getElementById('dlRow').classList.remove('show');
+  document.getElementById('dlrow').classList.remove('show');
 }
-function clearFile(){
-  gFile = null; fileIn.value = '';
-  document.getElementById('filePill').classList.remove('show');
-  document.getElementById('btnGo').disabled = true;
-}
-function setColor(btn, c){
-  gColor = c;
-  document.querySelectorAll('.color-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-}
-function setSize(btn, s){
-  gSize = s;
-  document.querySelectorAll('.size-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-}
-function showErr(m){ var b = document.getElementById('errBox'); b.textContent = '⚠ ' + m; b.classList.add('show'); }
-function setProgress(pct, label){ document.getElementById('progBar').style.width = pct + '%'; document.getElementById('progLabel').textContent = label; }
-function showTab(btn, id){
-  document.querySelectorAll('.ref-panel').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.ref-tab').forEach(function(t){ t.classList.remove('active'); });
-  document.getElementById('tab-' + id).classList.add('active');
-  btn.classList.add('active');
-}
-function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function clearFile(){gFile=null;fi.value='';document.getElementById('fpill').classList.remove('show');document.getElementById('btnGo').disabled=true}
+function setC(btn,c){gColor=c;document.querySelectorAll('.cbtn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
+function setS(btn,s){gSize=s;document.querySelectorAll('.sbtn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
+function showErr(m){var b=document.getElementById('err');b.textContent='⚠ '+m;b.classList.add('show')}
+function setP(p,l){document.getElementById('pb').style.width=p+'%';document.getElementById('pl').textContent=l}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-// ─── OMML → Spoken Math Engine ───────────────────────────────────────────────
-var GREEK = {α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
-var SYMS = {'±':'plus or minus','∓':'minus or plus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','≡':'is equivalent to','∈':'is an element of','∉':'is not an element of','⊂':'is a subset of','∪':'union','∩':'intersection','∅':'the empty set','∀':'for all','∃':'there exists','→':'approaches','∂':'partial','°':'degrees','⊥':'perpendicular to','∥':'parallel to','∠':'angle'};
-var KNOWN = {sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',exp:'e to the',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v',dw:'d w'};
-
-function xlate(s){
-  s = s.trim(); if(!s) return '';
-  if(KNOWN[s]) return KNOWN[s];
-  var out = '';
-  for(var i = 0; i < s.length; i++){
-    var c = s[i];
-    if(GREEK[c]) out += ' ' + GREEK[c] + ' ';
-    else if(SYMS[c]) out += ' ' + SYMS[c] + ' ';
-    else out += c;
-  }
-  return out.trim();
-}
-
-function expandInner(s){
-  s = s.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2');
-  s = s.replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2');
-  s = s.replace(/(\d)([a-zA-Z])/g,'$1 \$2');
-  return s;
-}
-
+// ─── OMML → Spoken Math (same proven engine) ────────────────────────────────
+var GREEK={α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
+var SYMS={'±':'plus or minus','∓':'minus or plus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','∈':'is an element of','∉':'is not an element of','∪':'union','∩':'intersection','∅':'the empty set','∀':'for all','∃':'there exists','→':'approaches','∂':'partial','°':'degrees','⊥':'perpendicular to','∥':'parallel to','∠':'angle'};
+var KNOWN={sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',exp:'e to the',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v',dw:'d w'};
+function xlate(s){s=s.trim();if(!s)return'';if(KNOWN[s])return KNOWN[s];var o='';for(var i=0;i<s.length;i++){var c=s[i];if(GREEK[c])o+=' '+GREEK[c]+' ';else if(SYMS[c])o+=' '+SYMS[c]+' ';else o+=c}return o.trim()}
 function expandOps(s){
-  s = s.trim(); if(!s) return '';
-  var r = s;
-  if(r.indexOf('(') >= 0){
-    r = r.replace(/\(([^)]*)\)/g, function(_,inner){ return ' the quantity ' + expandInner(inner) + ', end quantity '; });
-    r = r.replace(/end quantity\s+the quantity/g, 'end quantity, times the quantity');
-  }
-  r = r.replace(/^\s*=\s*-\s*(\d)/, 'equals negative $1').replace(/^\s*=\s*(\d)/, 'equals $1');
-  r = r.replace(/^\s*\+\s*(\d)/, 'plus $1').replace(/^\s*-\s*(\d)/, 'minus $1');
-  r = r.replace(/^\s*\+\s*$/, 'plus').replace(/^\s*-\s*$/, 'minus');
-  r = r.replace(/^\s*-\s+(the quantity)/, 'minus $1');
-  r = r.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2');
-  r = r.replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2');
-  r = r.replace(/([a-zA-Z0-9])=(-?\d)/g,'$1 equals $2').replace(/=0\b/g,'equals 0').replace(/=0$/,'equals 0');
-  r = r.replace(/(\d)([a-zA-Z])/g,'$1 $2');
-  r = r.replace(/[()]/g,'');
+  s=s.trim();if(!s)return'';var r=s;
+  if(r.indexOf('(')>=0){r=r.replace(/\(([^)]*)\)/g,function(_,inner){inner=inner.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/(\d)([a-zA-Z])/g,'$1 $2');return' the quantity '+inner+', end quantity '});r=r.replace(/end quantity\s+the quantity/g,'end quantity, times the quantity')}
+  r=r.replace(/^\s*=\s*-\s*(\d)/,'equals negative $1').replace(/^\s*=\s*(\d)/,'equals $1');
+  r=r.replace(/^\s*\+\s*(\d)/,'plus $1').replace(/^\s*-\s*(\d)/,'minus $1');
+  r=r.replace(/^\s*\+\s*$/,'plus').replace(/^\s*-\s*$/,'minus');
+  r=r.replace(/^\s*-\s+(the quantity)/,'minus $1');
+  r=r.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2');
+  r=r.replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2');
+  r=r.replace(/([a-zA-Z0-9])=(-?\d)/g,'$1 equals $2').replace(/=0\b/g,'equals 0').replace(/=0$/,'equals 0');
+  r=r.replace(/(\d)([a-zA-Z])/g,'$1 $2').replace(/[()]/g,'');
   return r.replace(/\s+/g,' ').trim();
 }
-
-function getRaw(node){ var t=[]; node.querySelectorAll('*').forEach(function(el){ if(el.localName==='t'&&el.textContent.trim()) t.push(el.textContent.trim()); }); return t.join(''); }
-function gch(node,name){ var ch=node.childNodes; for(var i=0;i<ch.length;i++) if(ch[i].localName===name) return ch[i]; return null; }
-var SKIPTAG = /^(fPr|sSupPr|sSubPr|sSubSupPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|sz|color|accPr|groupChrPr|limLowPr|limUppPr|barPr|eqArrPr|boxPr|borderBoxPr|funcPr|phantPr|sPrePr|type|i|b|strike|vertAlign)$/;
-
-function pwr(n){ n=n.trim(); var p=parseInt(n); if(!isNaN(p)){ var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth']; return (p>=1&&p<=10?nm[p]:p+'th')+' power'; } return n+' power'; }
-
-function speakExp(base, raw){
-  var exp=raw.trim(), neg=exp.charAt(0)==='-', abs=neg?exp.slice(1).trim():exp;
-  if(base==='e') return neg?'e to the negative '+abs:'e to the '+abs;
-  if(abs==='0') return base+' to the zero power';
-  if(abs==='1') return neg?base+' to the negative 1':base;
-  if(abs==='2') return neg?base+' to the negative 2':base+' squared';
-  if(abs==='3') return neg?base+' to the negative 3':base+' cubed';
-  return neg?base+' to the negative '+abs:base+' to the '+pwr(abs);
+function getRaw(n){var t=[];n.querySelectorAll('*').forEach(function(el){if(el.localName==='t'&&el.textContent.trim())t.push(el.textContent.trim())});return t.join('')}
+function gch(n,name){var ch=n.childNodes;for(var i=0;i<ch.length;i++)if(ch[i].localName===name)return ch[i];return null}
+var SKIP=/^(fPr|sSupPr|sSubPr|sSubSupPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|sz|color|accPr|groupChrPr|limLowPr|limUppPr|barPr|eqArrPr|boxPr|borderBoxPr|funcPr|phantPr|sPrePr|type|i|b|strike|vertAlign)$/;
+function pwr(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
+function spkExp(base,raw){var exp=raw.trim(),neg=exp.charAt(0)==='-',abs=neg?exp.slice(1).trim():exp;if(base==='e')return neg?'e to the negative '+abs:'e to the '+abs;if(abs==='0')return base+' to the zero power';if(abs==='1')return neg?base+' to the negative 1':base;if(abs==='2')return neg?base+' to the negative 2':base+' squared';if(abs==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+abs:base+' to the '+pwr(abs)}
+function wAll(nodes){var r=[];Array.from(nodes).forEach(function(n){wNode(n).forEach(function(t){if(t&&t.trim())r.push(t.trim())})});return r}
+function wNode(node){
+  if(!node||!node.localName)return[];
+  var tag=node.localName,ch=Array.from(node.childNodes);
+  if(SKIP.test(tag))return[];
+  if(/^(oMath|oMathPara|e|fName|box|borderBox|groupChr)$/.test(tag))return wAll(ch);
+  if(/^(sup|sub|deg|lim)$/.test(tag)){var r=getRaw(node);return r?[r]:[]}
+  if(/^(num|den)$/.test(tag))return wAll(ch);
+  if(tag==='r'){var tel=gch(node,'t');if(tel&&tel.textContent&&tel.textContent.trim()){var x=xlate(tel.textContent.trim());return x?[expandOps(x)]:[]}return wAll(ch)}
+  if(tag==='t'){var s=node.textContent||'';if(s.trim()){var x2=xlate(s.trim());return x2?[expandOps(x2)]:[]}return[]}
+  if(tag==='f'){var fPr=gch(node,'fPr'),style='bar';if(fPr){var ty=Array.from(fPr.childNodes).find(function(c){return c.localName==='type'});if(ty)style=ty.getAttribute('m:val')||'bar'}var nEl=gch(node,'num'),dEl=gch(node,'den');var n=wAll(nEl?Array.from(nEl.childNodes):[]).join(' '),d=wAll(dEl?Array.from(dEl.childNodes):[]).join(' ');return style==='noBar'?[n+' choose '+d]:[n+' over '+d]}
+  if(tag==='sSup'){var eEl=gch(node,'e'),sEl=gch(node,'sup');return[spkExp(wAll(eEl?Array.from(eEl.childNodes):[]).join(' ').trim(),sEl?getRaw(sEl):'')]}
+  if(tag==='sSub'){var eEl2=gch(node,'e'),sEl2=gch(node,'sub');var b2=wAll(eEl2?Array.from(eEl2.childNodes):[]).join(' ').trim(),sr=sEl2?getRaw(sEl2):'';return b2==='log'||b2==='log of'?['log base '+sr+' of']:[b2+' sub '+sr]}
+  if(tag==='sSubSup'){var eEl3=gch(node,'e'),sEl3=gch(node,'sub'),upEl=gch(node,'sup');var b3=wAll(eEl3?Array.from(eEl3.childNodes):[]).join(' ').trim(),s3=sEl3?getRaw(sEl3):'',u3=upEl?getRaw(upEl):'';if(/^(sum|the sum)$/i.test(b3))return['the sum from '+s3+' to '+u3];if(/integral/i.test(b3))return['the integral from '+s3+' to '+u3];if(/^(sine|cosine|tangent|secant|cosecant|cotangent)/i.test(b3))return[b3+' to the '+pwr(u3)+' of'];return[b3+' sub '+s3+' to the '+pwr(u3)]}
+  if(tag==='d'){var dPr=gch(node,'dPr'),oc='(',cc=')';if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc=v2}});var parts=ch.filter(function(c){return c.localName==='e'}),inner=parts.map(function(p){return wAll(Array.from(p.childNodes)).join(' ')}).join(', ');if(oc===''&&cc==='')return[inner];if(oc==='|'&&cc==='|')return['the absolute value of '+inner];if(oc==='‖'&&cc==='‖')return['the norm of '+inner];if(oc==='{'&&cc==='}')return['the set '+inner];if(oc==='⌈'&&cc==='⌉')return['the ceiling of '+inner];if(oc==='⌊'&&cc==='⌋')return['the floor of '+inner];return['the quantity '+inner+', end quantity']}
+  if(tag==='func'){var fnEl=gch(node,'fName'),eEl4=gch(node,'e');var fn=wAll(fnEl?Array.from(fnEl.childNodes):[]).join(' ').trim(),arg=wAll(eEl4?Array.from(eEl4.childNodes):[]).join(' ').trim(),fl=fn.toLowerCase();var FT={sine:'sine of',cosine:'cosine of',tangent:'tangent of',cosecant:'cosecant of',secant:'secant of',cotangent:'cotangent of',arcsine:'arcsine of',arccosine:'arccosine of',arctangent:'arctangent of','hyperbolic sine':'hyperbolic sine of','hyperbolic cosine':'hyperbolic cosine of','hyperbolic tangent':'hyperbolic tangent of','the natural log of':'the natural log of','log of':'log of',log:'log of','the limit':'the limit as','the maximum of':'the maximum of','the minimum of':'the minimum of'};for(var k in FT){if(fl===k||fl.startsWith(k))return[FT[k]+' '+arg]}return[/^[a-zA-Z]$/.test(fl)?fl+' of '+arg:fn+' of '+arg]}
+  if(tag==='rad'){var rPr=gch(node,'radPr'),degEl=gch(node,'deg'),eEl5=gch(node,'e');var inner2=wAll(eEl5?Array.from(eEl5.childNodes):[]).join(' '),hide=false;if(rPr){var dh=Array.from(rPr.childNodes).find(function(c){return c.localName==='degHide'});if(dh){var v3=dh.getAttribute('m:val');hide=!v3||v3==='1'||v3==='true'||v3==='on'}}if(hide||!degEl)return['the square root of '+inner2];var dt=getRaw(degEl).trim();if(!dt||dt==='2')return['the square root of '+inner2];if(dt==='3')return['the cube root of '+inner2];if(dt==='4')return['the fourth root of '+inner2];return['the '+dt+'th root of '+inner2]}
+  if(tag==='nary'){var nPr=gch(node,'naryPr'),sEl4=gch(node,'sub'),upEl2=gch(node,'sup'),eEl6=gch(node,'e'),chr='∑',sh=false,sph=false;if(nPr)Array.from(nPr.childNodes).forEach(function(nc){var nct=nc.localName,v4=nc.getAttribute('m:val')||'';if(nct==='chr'&&v4)chr=v4;if(nct==='subHide')sh=v4==='1'||v4==='on';if(nct==='supHide')sph=v4==='1'||v4==='on'});var NL={'∑':'the sum','∏':'the product','∫':'the integral','∬':'the double integral','∭':'the triple integral','∮':'the line integral'},lbl=NL[chr]||'the operation',fr=(!sh&&sEl4)?getRaw(sEl4):'',to2=(!sph&&upEl2)?getRaw(upEl2):'',ex2=eEl6?wAll(Array.from(eEl6.childNodes)).join(' '):'';var out=lbl;if(fr)out+=' from '+fr;if(to2)out+=' to '+to2;if(ex2)out+=' of '+ex2;return[out]}
+  if(tag==='limLow'){var eEl7=gch(node,'e'),lEl=gch(node,'lim'),expr2=wAll(eEl7?Array.from(eEl7.childNodes):[]).join(' '),limt=lEl?getRaw(lEl):'';return[/^(the\s+)?limit$/i.test(expr2.trim())?'the limit as '+limt:expr2+' as '+limt]}
+  if(tag==='limUpp'){var eEl8=gch(node,'e'),lEl2=gch(node,'lim');return[wAll(eEl8?Array.from(eEl8.childNodes):[]).join(' ')+' to '+(lEl2?getRaw(lEl2):'')]}
+  if(tag==='bar'){var eEl9=gch(node,'e');return[(eEl9?wAll(Array.from(eEl9.childNodes)).join(' '):'')+' bar']}
+  if(tag==='acc'){var eEl10=gch(node,'e');return[(eEl10?wAll(Array.from(eEl10.childNodes)).join(' '):'')+' hat']}
+  if(tag==='phant')return[];
+  return wAll(ch);
 }
-
-function walkAll(nodes){ var r=[]; Array.from(nodes).forEach(function(n){ walkNode(n).forEach(function(t){ if(t&&t.trim()) r.push(t.trim()); }); }); return r; }
-
-function walkNode(node){
-  if(!node||!node.localName) return [];
-  var tag=node.localName, ch=Array.from(node.childNodes);
-  if(SKIPTAG.test(tag)) return [];
-  var PASS=/^(oMath|oMathPara|e|fName|box|borderBox|groupChr)$/;
-  if(PASS.test(tag)) return walkAll(ch);
-  if(/^(sup|sub|deg|lim)$/.test(tag)){ var raw=getRaw(node); return raw?[raw]:[]; }
-  if(/^(num|den)$/.test(tag)) return walkAll(ch);
-  if(tag==='r'){
-    var tel=gch(node,'t');
-    if(tel&&tel.textContent&&tel.textContent.trim()){ var x=xlate(tel.textContent.trim()); return x?[expandOps(x)]:[]; }
-    return walkAll(ch);
-  }
-  if(tag==='t'){ var s=node.textContent||''; if(s.trim()){ var x2=xlate(s.trim()); return x2?[expandOps(x2)]:[]; } return []; }
-  if(tag==='f'){
-    var fPr=gch(node,'fPr'), style='bar';
-    if(fPr){ var tyEl=Array.from(fPr.childNodes).find(function(c){ return c.localName==='type'; }); if(tyEl) style=tyEl.getAttribute('m:val')||'bar'; }
-    var numEl=gch(node,'num'), denEl=gch(node,'den');
-    var n=walkAll(numEl?Array.from(numEl.childNodes):[]).join(' ');
-    var d=walkAll(denEl?Array.from(denEl.childNodes):[]).join(' ');
-    if(style==='noBar') return [n+' choose '+d];
-    return [n+' over '+d];
-  }
-  if(tag==='sSup'){
-    var eEl=gch(node,'e'), supEl=gch(node,'sup');
-    var base=walkAll(eEl?Array.from(eEl.childNodes):[]).join(' ').trim();
-    return [speakExp(base, supEl?getRaw(supEl):'')];
-  }
-  if(tag==='sSub'){
-    var eEl2=gch(node,'e'), subEl=gch(node,'sub');
-    var base2=walkAll(eEl2?Array.from(eEl2.childNodes):[]).join(' ').trim();
-    var subR=subEl?getRaw(subEl):'';
-    if(base2==='log'||base2==='log of') return ['log base '+subR+' of'];
-    return [base2+' sub '+subR];
-  }
-  if(tag==='sSubSup'){
-    var eEl3=gch(node,'e'), subEl2=gch(node,'sub'), supEl2=gch(node,'sup');
-    var base3=walkAll(eEl3?Array.from(eEl3.childNodes):[]).join(' ').trim();
-    var sub3=subEl2?getRaw(subEl2):'', sup3=supEl2?getRaw(supEl2):'';
-    if(/^(sum|the sum)$/i.test(base3)) return ['the sum from '+sub3+' to '+sup3];
-    if(/integral/i.test(base3)) return ['the integral from '+sub3+' to '+sup3];
-    if(/^(sine|cosine|tangent|secant|cosecant|cotangent)/i.test(base3)) return [base3+' to the '+pwr(sup3)+' of'];
-    return [base3+' sub '+sub3+' to the '+pwr(sup3)];
-  }
-  if(tag==='d'){
-    var dPr2=gch(node,'dPr'), oc='(', cc=')';
-    if(dPr2){ Array.from(dPr2.childNodes).forEach(function(dc){ if(dc.localName==='begChr'){var v=dc.getAttribute('m:val'); if(v!==null)oc=v;} if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val'); if(v2!==null)cc=v2;} }); }
-    var parts=ch.filter(function(c){ return c.localName==='e'; });
-    var inner=parts.map(function(p){ return walkAll(Array.from(p.childNodes)).join(' '); }).join(', ');
-    if(oc===''&&cc==='') return [inner];
-    if(oc==='|'&&cc==='|') return ['the absolute value of '+inner];
-    if(oc==='‖'&&cc==='‖') return ['the norm of '+inner];
-    if(oc==='{'&&cc==='}') return ['the set '+inner];
-    if(oc==='⌈'&&cc==='⌉') return ['the ceiling of '+inner];
-    if(oc==='⌊'&&cc==='⌋') return ['the floor of '+inner];
-    return ['the quantity '+inner+', end quantity'];
-  }
-  if(tag==='func'){
-    var fnEl=gch(node,'fName'), eEl4=gch(node,'e');
-    var fname=walkAll(fnEl?Array.from(fnEl.childNodes):[]).join(' ').trim();
-    var arg=walkAll(eEl4?Array.from(eEl4.childNodes):[]).join(' ').trim();
-    var fl=fname.toLowerCase();
-    var FT={sine:'sine of',cosine:'cosine of',tangent:'tangent of',cosecant:'cosecant of',secant:'secant of',cotangent:'cotangent of',arcsine:'arcsine of',arccosine:'arccosine of',arctangent:'arctangent of','hyperbolic sine':'hyperbolic sine of','hyperbolic cosine':'hyperbolic cosine of','hyperbolic tangent':'hyperbolic tangent of','the natural log of':'the natural log of','log of':'log of',log:'log of','the limit':'the limit as','the maximum of':'the maximum of','the minimum of':'the minimum of'};
-    for(var k in FT){ if(fl===k||fl.startsWith(k)) return [FT[k]+' '+arg]; }
-    if(/^[a-zA-Z]$/.test(fl)) return [fl+' of '+arg];
-    return [fname+' of '+arg];
-  }
-  if(tag==='rad'){
-    var rPr=gch(node,'radPr'), dEl=gch(node,'deg'), eEl5=gch(node,'e');
-    var inner2=walkAll(eEl5?Array.from(eEl5.childNodes):[]).join(' ');
-    var hide=false;
-    if(rPr){ var dh=Array.from(rPr.childNodes).find(function(c){ return c.localName==='degHide'; }); if(dh){ var v3=dh.getAttribute('m:val'); hide=!v3||v3==='1'||v3==='true'||v3==='on'; } }
-    if(hide||!dEl) return ['the square root of '+inner2];
-    var dt=getRaw(dEl).trim();
-    if(!dt||dt==='2') return ['the square root of '+inner2];
-    if(dt==='3') return ['the cube root of '+inner2];
-    if(dt==='4') return ['the fourth root of '+inner2];
-    return ['the '+dt+'th root of '+inner2];
-  }
-  if(tag==='nary'){
-    var nPr=gch(node,'naryPr'), sEl=gch(node,'sub'), upEl=gch(node,'sup'), eEl6=gch(node,'e');
-    var chr='∑', sh=false, sph=false;
-    if(nPr){ Array.from(nPr.childNodes).forEach(function(nc){ var nct=nc.localName, v4=nc.getAttribute('m:val')||''; if(nct==='chr'&&v4) chr=v4; if(nct==='subHide') sh=v4==='1'||v4==='on'; if(nct==='supHide') sph=v4==='1'||v4==='on'; }); }
-    var NL={'∑':'the sum','∏':'the product','∫':'the integral','∬':'the double integral','∭':'the triple integral','∮':'the line integral'};
-    var lbl=NL[chr]||'the operation';
-    var fr=(!sh&&sEl)?getRaw(sEl):'', to=(!sph&&upEl)?getRaw(upEl):'';
-    var ex=eEl6?walkAll(Array.from(eEl6.childNodes)).join(' '):'';
-    var out=lbl; if(fr) out+=' from '+fr; if(to) out+=' to '+to; if(ex) out+=' of '+ex;
-    return [out];
-  }
-  if(tag==='limLow'){
-    var eEl7=gch(node,'e'), lEl=gch(node,'lim');
-    var expr=walkAll(eEl7?Array.from(eEl7.childNodes):[]).join(' ');
-    var limt=lEl?getRaw(lEl):'';
-    if(/^(the\s+)?limit$/i.test(expr.trim())) return ['the limit as '+limt];
-    return [expr+' as '+limt];
-  }
-  if(tag==='limUpp'){ var eEl8=gch(node,'e'),lEl2=gch(node,'lim'); return [walkAll(eEl8?Array.from(eEl8.childNodes):[]).join(' ')+' to '+(lEl2?getRaw(lEl2):'')] }
-  if(tag==='bar'){ var eEl9=gch(node,'e'); return [(eEl9?walkAll(Array.from(eEl9.childNodes)).join(' '):'')+' bar']; }
-  if(tag==='acc'){ var eEl10=gch(node,'e'); return [(eEl10?walkAll(Array.from(eEl10.childNodes)).join(' '):'')+' hat']; }
-  if(tag==='phant') return [];
-  return walkAll(ch);
-}
-
-function postProcess(tokens){
-  var r=[], i=0;
+function postProc(tokens){
+  var r=[],i=0;
   while(i<tokens.length){
     var t=tokens[i];
-    // single letter + "the quantity x, end quantity" → "letter of x"
-    if(/^[a-zA-Z]$/.test(t)&&i+1<tokens.length){
-      var nx=tokens[i+1];
-      if(nx.startsWith('the quantity ')&&nx.includes('end quantity')){
-        var inner=nx.replace(/^the quantity\s*/,'').replace(/,?\s*end quantity.*$/,'').trim();
-        r.push(t+' of '+inner); i+=2; continue;
-      }
-    }
-    // "end quantity" + "the quantity" → insert "times"
-    if(t.endsWith('end quantity')&&i+1<tokens.length){
-      var nx2=tokens[i+1];
-      if(nx2.startsWith('the quantity')||nx2.startsWith('times the quantity')){
-        r.push(t+', times'); i++; continue;
-      }
-    }
-    r.push(t); i++;
+    if(/^[a-zA-Z]$/.test(t)&&i+1<tokens.length){var nx=tokens[i+1];if(nx.startsWith('the quantity ')&&nx.includes('end quantity')){r.push(t+' of '+nx.replace(/^the quantity\s*/,'').replace(/,?\s*end quantity.*$/,'').trim());i+=2;continue}}
+    if(t.endsWith('end quantity')&&i+1<tokens.length){var nx2=tokens[i+1];if(nx2.startsWith('the quantity')||nx2.startsWith('times the quantity')){r.push(t+', times');i++;continue}}
+    r.push(t);i++;
   }
   return repairSplits(r);
 }
-
-function isCont(tok){
-  return /^(x|y|z|[a-zA-Z])\s+(squared|cubed|to the)/.test(tok)||
-         /^(plus|minus)\s+[\da-zA-Z]/.test(tok)||
-         /^\d+\s+[a-zA-Z]/.test(tok)||
-         /^[a-zA-Z]\s+(squared|cubed|to the|plus|minus)/.test(tok);
-}
-
+function isCont(tok){return/^(x|y|z|[a-zA-Z])\s+(squared|cubed|to the)/.test(tok)||/^(plus|minus)\s+[\da-zA-Z]/.test(tok)||/^\d+\s+[a-zA-Z]/.test(tok)||/^[a-zA-Z]\s+(squared|cubed|to the|plus|minus)/.test(tok)}
 function repairSplits(tokens){
-  var res=tokens.slice(), changed=true;
-  while(changed){
-    changed=false;
-    for(var i=0;i<res.length;i++){
-      var t=res[i];
-      // Pattern A: "end quantity" + "-3" or "minus 3" → reassemble as subtracted group
-      if(t.endsWith('end quantity')&&i+1<res.length){
-        var nx=res[i+1];
-        var mA=nx.match(/^(-\s*|minus\s+|plus\s+|\+\s*)(\d.*)$/);
-        if(mA&&i+2<res.length){
-          var op=(mA[1].trim()==='-'||mA[1].trim()==='minus')?'minus':'plus';
-          var parts=[mA[2].trim()], j=i+2;
-          while(j<res.length&&isCont(res[j])){ parts.push(res[j]); j++; }
-          if(parts.length>1){
-            res=res.slice(0,i).concat([t+', '+op+' the quantity '+parts.join(' ')+', end quantity']).concat(res.slice(j));
-            changed=true; break;
-          }
-        }
-      }
-      // Pattern B: "end quantity N" (digit stuck to end)
-      var mB=t.match(/^(.*end quantity),?\s+(\d+)$/);
-      if(mB&&i+1<res.length){
-        var before=mB[1].replace(/,\s*$/,'').trim(), parts2=[mB[2]], j2=i+1;
-        while(j2<res.length&&isCont(res[j2])){ parts2.push(res[j2]); j2++; }
-        if(parts2.length>1){
-          res=res.slice(0,i).concat([before+', times the quantity '+parts2.join(' ')+', end quantity']).concat(res.slice(j2));
-          changed=true; break;
-        }
-      }
-    }
+  var res=tokens.slice(),changed=true;
+  while(changed){changed=false;for(var i=0;i<res.length;i++){var t=res[i];
+    if(t.endsWith('end quantity')&&i+1<res.length){var nx=res[i+1],mA=nx.match(/^(-\s*|minus\s+|plus\s+|\+\s*)(\d.*)$/);if(mA&&i+2<res.length){var op=(mA[1].trim()==='-'||mA[1].trim()==='minus')?'minus':'plus',parts=[mA[2].trim()],j=i+2;while(j<res.length&&isCont(res[j])){parts.push(res[j]);j++}if(parts.length>1){res=res.slice(0,i).concat([t+', '+op+' the quantity '+parts.join(' ')+', end quantity']).concat(res.slice(j));changed=true;break}}}
+    var mB=t.match(/^(.*end quantity),?\s+(\d+)$/);if(mB&&i+1<res.length){var before=mB[1].replace(/,\s*$/,'').trim(),parts2=[mB[2]],j2=i+1;while(j2<res.length&&isCont(res[j2])){parts2.push(res[j2]);j2++}if(parts2.length>1){res=res.slice(0,i).concat([before+', times the quantity '+parts2.join(' ')+', end quantity']).concat(res.slice(j2));changed=true;break}}
+  }}return res;
+}
+function omml2speech(omath){var t=wAll(Array.from(omath.childNodes));t=postProc(t);var s=t.join(' ');s=s.replace(/\s+/g,' ').replace(/,\s*,/g,',').replace(/\bof of\b/g,'of').replace(/end quantity,?\s+end quantity/g,'end quantity');return s.trim()}
+
+// ─── OMML → MathML (for rendering) ──────────────────────────────────────────
+// Convert OMML node to MathML string for MathJax
+function omml2mml(node){
+  // Recursive conversion
+  var tag=node.localName||'';
+  var ch=Array.from(node.childNodes).filter(function(c){return c.localName});
+  
+  function kids(nodes){return nodes.map(omml2mml).join('')}
+  function wrap(tag,content,attrs){return'<'+tag+(attrs?' '+attrs:'')+'>'+content+'</'+tag+'>'}
+  
+  if(!tag||tag==='oMathPara')return wrap('math',wrap('mrow',kids(ch)),'xmlns="http://www.w3.org/1998/Math/MathML" display="block"');
+  if(tag==='oMath')return wrap('mrow',kids(ch));
+  if(tag==='r'){var tel=gch(node,'t');if(tel&&tel.textContent.trim()){var txt=tel.textContent.trim();if(/^[a-zA-Z]$/.test(txt))return wrap('mi',txt);if(/^[0-9.]+$/.test(txt))return wrap('mn',txt);if(/^[+\-=<>]$/.test(txt))return wrap('mo',txt);return wrap('mi',txt)}return''}
+  if(tag==='f'){var n=gch(node,'num'),d=gch(node,'den');return wrap('mfrac',wrap('mrow',kids(n?Array.from(n.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(d?Array.from(d.childNodes).filter(function(c){return c.localName}):[])))}
+  if(tag==='sSup'){var e=gch(node,'e'),s=gch(node,'sup');return wrap('msup',wrap('mrow',kids(e?Array.from(e.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(s?Array.from(s.childNodes).filter(function(c){return c.localName}):[])));  }
+  if(tag==='sSub'){var e2=gch(node,'e'),s2=gch(node,'sub');return wrap('msub',wrap('mrow',kids(e2?Array.from(e2.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(s2?Array.from(s2.childNodes).filter(function(c){return c.localName}):[])));  }
+  if(tag==='sSubSup'){var e3=gch(node,'e'),sb=gch(node,'sub'),sp=gch(node,'sup');return wrap('msubsup',wrap('mrow',kids(e3?Array.from(e3.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(sb?Array.from(sb.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(sp?Array.from(sp.childNodes).filter(function(c){return c.localName}):[])));  }
+  if(tag==='d'){var pts=ch.filter(function(c){return c.localName==='e'}),dPr=gch(node,'dPr'),oc='(',cc=')';if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc=v2}});var inner=pts.map(function(p){return wrap('mrow',kids(Array.from(p.childNodes).filter(function(c){return c.localName})))}).join(wrap('mo',','));return wrap('mrow',wrap('mo',esc(oc))+inner+wrap('mo',esc(cc)))}
+  if(tag==='rad'){var rPr2=gch(node,'radPr'),degEl2=gch(node,'deg'),eEl=gch(node,'e');var hide=false;if(rPr2){var dh2=Array.from(rPr2.childNodes).find(function(c){return c.localName==='degHide'});if(dh2){var v3=dh2.getAttribute('m:val');hide=!v3||v3==='1'}}if(hide||!degEl2)return wrap('msqrt',kids(eEl?Array.from(eEl.childNodes).filter(function(c){return c.localName}):[]));return wrap('mroot',kids(eEl?Array.from(eEl.childNodes).filter(function(c){return c.localName}):[])+kids(Array.from(degEl2.childNodes).filter(function(c){return c.localName})))}
+  if(tag==='func'){var fnEl=gch(node,'fName'),eEl2=gch(node,'e');return wrap('mrow',kids(fnEl?Array.from(fnEl.childNodes).filter(function(c){return c.localName}):[])+kids(eEl2?Array.from(eEl2.childNodes).filter(function(c){return c.localName}):[]))}
+  if(tag==='nary'){var nPr2=gch(node,'naryPr'),sEl=gch(node,'sub'),upEl3=gch(node,'sup'),eEl3=gch(node,'e'),chr2='∑',sh2=false,sph2=false;if(nPr2)Array.from(nPr2.childNodes).forEach(function(nc){var nct=nc.localName,v4=nc.getAttribute('m:val')||'';if(nct==='chr'&&v4)chr2=v4;if(nct==='subHide')sh2=v4==='1';if(nct==='supHide')sph2=v4==='1'});var op=wrap('mo',chr2);var body=wrap('mrow',kids(eEl3?Array.from(eEl3.childNodes).filter(function(c){return c.localName}):[]));if(!sh2&&!sph2&&sEl&&upEl3)return wrap('mrow',wrap('msubsup',op+kids(Array.from(sEl.childNodes).filter(function(c){return c.localName}))+kids(Array.from(upEl3.childNodes).filter(function(c){return c.localName})))+body);if(!sh2&&sEl)return wrap('mrow',wrap('msub',op+kids(Array.from(sEl.childNodes).filter(function(c){return c.localName})))+body);return wrap('mrow',op+body)}
+  if(tag==='limLow'){var eEl4=gch(node,'e'),lEl=gch(node,'lim');return wrap('munder',wrap('mrow',kids(eEl4?Array.from(eEl4.childNodes).filter(function(c){return c.localName}):[]))+wrap('mrow',kids(lEl?Array.from(lEl.childNodes).filter(function(c){return c.localName}):[])));  }
+  if(tag==='acc'){var eEl5=gch(node,'e');return wrap('mover',wrap('mrow',kids(eEl5?Array.from(eEl5.childNodes).filter(function(c){return c.localName}):[]))+wrap('mo','ˆ'))}
+  if(tag==='bar'){var eEl6=gch(node,'e');return wrap('mover',wrap('mrow',kids(eEl6?Array.from(eEl6.childNodes).filter(function(c){return c.localName}):[]))+wrap('mo','‾'))}
+  if(tag==='e'||tag==='fName')return kids(ch);
+  // Skip formatting/properties nodes
+  if(/^(fPr|sSupPr|sSubPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|pPr|limLowPr|limUppPr|barPr|funcPr|accPr)$/.test(tag))return'';
+  if(tag==='t'){if(node.textContent.trim()){var tx=node.textContent.trim();if(/^[0-9.]+$/.test(tx))return wrap('mn',tx);if(/^[a-zA-Z]$/.test(tx))return wrap('mi',tx);return wrap('mi',esc(tx))}return''}
+  return kids(ch);
+}
+
+// ─── Render equation as PNG via MathJax + Canvas ─────────────────────────────
+var mjaxReady=false;
+window.addEventListener('load',function(){
+  if(window.MathJax&&window.MathJax.startup){
+    window.MathJax.startup.promise.then(function(){mjaxReady=true;console.log('MathJax ready')});
   }
-  return res;
+});
+
+async function renderEquationAsPng(omathNode){
+  // 1. Convert OMML → MathML string
+  var mmlStr=omml2mml(omathNode);
+  
+  // 2. Use MathJax to render MathML → SVG
+  if(!mjaxReady||!window.MathJax){
+    // MathJax not loaded — return null, will skip image
+    return null;
+  }
+  
+  try {
+    var area=document.getElementById('mjax-area');
+    area.innerHTML=mmlStr;
+    await MathJax.typesetPromise([area]);
+    var svg=area.querySelector('svg');
+    if(!svg)return null;
+    
+    // 3. SVG → Canvas → PNG
+    var svgData=new XMLSerializer().serializeToString(svg);
+    var svgBlob=new Blob([svgData],{type:'image/svg+xml;charset=utf-8'});
+    var url=URL.createObjectURL(svgBlob);
+    
+    return new Promise(function(resolve){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var scale=2; // 2x for crisp rendering
+        canvas.width=img.naturalWidth*scale||200;
+        canvas.height=img.naturalHeight*scale||60;
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='white';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.scale(scale,scale);
+        ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        var pngData=canvas.toDataURL('image/png').split(',')[1];
+        resolve({png:pngData,width:canvas.width,height:canvas.height});
+      };
+      img.onerror=function(){URL.revokeObjectURL(url);resolve(null)};
+      img.src=url;
+    });
+  } catch(e){
+    console.warn('MathJax render error:',e);
+    return null;
+  }
 }
 
-function ommlToSpeech(omath){
-  var tokens=walkAll(Array.from(omath.childNodes));
-  tokens=postProcess(tokens);
-  var s=tokens.join(' ');
-  s=s.replace(/\s+/g,' ').replace(/,\s*,/g,',').replace(/\bof of\b/g,'of').replace(/end quantity,?\s+end quantity/g,'end quantity');
-  return s.trim();
-}
-
-// ─── Document processing ─────────────────────────────────────────────────────
+// ─── Main extraction ──────────────────────────────────────────────────────────
 async function run(){
-  if(!gFile) return;
-  document.getElementById('btnGo').disabled = true;
+  if(!gFile)return;
+  document.getElementById('btnGo').disabled=true;
   document.getElementById('prog').classList.add('show');
   document.getElementById('review').classList.remove('show');
-  document.getElementById('dlRow').classList.remove('show');
-  document.getElementById('errBox').classList.remove('show');
-  try {
-    setProgress(15,'Reading file…');
-    var buf = await gFile.arrayBuffer();
-    gZip = await JSZip.loadAsync(buf);
-    setProgress(35,'Parsing XML…');
-    gDocXml = await gZip.file('word/document.xml').async('string');
-    setProgress(55,'Finding equations…');
-    var parser = new DOMParser();
-    var xmlDoc = parser.parseFromString(gDocXml,'application/xml');
-    var allParas = Array.from(xmlDoc.querySelectorAll('p'));
-    gParas = []; gSpoken = [];
-    allParas.forEach(function(p, idx){
-      var maths = Array.from(p.querySelectorAll('oMath'));
-      if(!maths.length) return;
-      var parts = maths.map(function(m){ return ommlToSpeech(m); }).filter(Boolean);
-      if(!parts.length) return;
-      var spoken = parts.join(', ').replace(/\s+/g,' ').trim();
-      // Detect mixed content warning
-      var warn = false;
+  document.getElementById('dlrow').classList.remove('show');
+  document.getElementById('err').classList.remove('show');
+  try{
+    setP(15,'Reading file…');
+    var buf=await gFile.arrayBuffer();
+    gZip=await JSZip.loadAsync(buf);
+    setP(35,'Parsing XML…');
+    gDocXml=await gZip.file('word/document.xml').async('string');
+    setP(55,'Finding equations…');
+    var parser=new DOMParser();
+    var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
+    var allParas=Array.from(xmlDoc.querySelectorAll('p'));
+    gParas=[];gSpoken=[];gOmml=[];
+    allParas.forEach(function(p,idx){
+      var maths=Array.from(p.querySelectorAll('oMath'));
+      if(!maths.length)return;
+      var parts=maths.map(function(m){return omml2speech(m)}).filter(Boolean);
+      if(!parts.length)return;
+      var spoken=parts.join(', ').replace(/\s+/g,' ').trim();
+      var warn=false;
       maths.forEach(function(m){
-        var pNode = m.parentNode; if(!pNode) return;
+        var pNode=m.parentNode;if(!pNode)return;
         Array.from(pNode.childNodes).forEach(function(sib){
-          if(sib===m||sib.nodeName==='oMath') return;
-          var ts = sib.querySelectorAll ? sib.querySelectorAll('t') : [];
-          Array.from(ts).forEach(function(t){
-            var tx=(t.textContent||'').trim();
-            if(/[()]\s*$|^\s*[()]|^[-(\[]/.test(tx)) warn=true;
-          });
+          if(sib===m||sib.nodeName==='oMath')return;
+          var ts=sib.querySelectorAll?sib.querySelectorAll('t'):[];
+          Array.from(ts).forEach(function(t){var tx=(t.textContent||'').trim();if(/[()]\s*$|^\s*[()]|^[-(\[]/.test(tx))warn=true});
         });
       });
-      // Get paraId for accurate insertion
-      var paraid = p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId') || p.getAttribute('w14:paraId') || '';
-      gParas.push({idx:idx, paraid:paraid, warn:warn});
+      var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
+      // Store raw oMath XML for image rendering
+      var ommlXml=maths.map(function(m){return new XMLSerializer().serializeToString(m)}).join('');
+      gParas.push({idx:idx,paraid:paraid,warn:warn});
       gSpoken.push(spoken);
+      gOmml.push({xml:ommlXml,nodes:maths});
     });
-    setProgress(100,'Found '+gParas.length+' formula'+(gParas.length!==1?'s':''));
+    setP(100,'Found '+gParas.length+' formula'+(gParas.length!==1?'s':''));
     document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled = false;
+    document.getElementById('btnGo').disabled=false;
     renderReview();
-  } catch(err){
+  }catch(err){
     document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled = false;
-    showErr('Error: '+err.message);
-    console.error(err);
+    document.getElementById('btnGo').disabled=false;
+    showErr('Error: '+err.message);console.error(err);
   }
 }
 
 function renderReview(){
-  var wc = gParas.filter(function(p){ return p.warn; }).length;
-  document.getElementById('reviewCount').textContent = gParas.length+' formula'+(gParas.length!==1?'s':'')+(wc?' — '+wc+' need review':'');
-  var html = '';
-  gParas.forEach(function(mp, i){
-    var w = mp.warn;
-    html += '<div class="fc'+(w?' warn':'')+'">'
-          + '<div class="fc-head">'
-          + '<span class="fc-num">#'+(i+1)+'</span>'
-          + '<span class="fc-para">Para '+(mp.idx+1)+(w?' ⚠':'')+' </span>'
-          + '</div>'
-          + '<div class="fc-body">'
-          + '<div class="fc-lbl">Spoken text — edit if needed</div>'
-          + '<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea>'
-          + (w?'<div class="fc-warn-msg">⚠ Mixed plain text + equation — verify this output</div>':'')
-          + '</div>'
-          + '</div>';
+  var wc=gParas.filter(function(p){return p.warn}).length;
+  document.getElementById('rc').textContent=gParas.length+' formula'+(gParas.length!==1?'s':'')+(wc?' — '+wc+' need review':'');
+  var html='';
+  gParas.forEach(function(mp,i){
+    var w=mp.warn;
+    html+='<div class="fc'+(w?' warn':'')+'">'
+      +'<div class="fch"><span class="fcn">#'+(i+1)+'</span><span class="fcp">Para '+(mp.idx+1)+(w?' ⚠':'')+' </span></div>'
+      +'<div class="fcb"><div class="fcl">Spoken text — edit if needed</div>'
+      +'<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea>'
+      +(w?'<div class="fcw">⚠ Mixed text+equation — verify this output</div>':'')
+      +'</div></div>';
   });
-  document.getElementById('formulaList').innerHTML = html;
-  // Attach listeners
-  gParas.forEach(function(_, i){
-    var ta = document.getElementById('fst'+i);
-    if(!ta) return;
-    ta.addEventListener('input', function(){
-      ta.classList.toggle('edited', ta.value.trim() !== gSpoken[i]);
-    });
+  document.getElementById('flist').innerHTML=html;
+  gParas.forEach(function(_,i){
+    var ta=document.getElementById('fst'+i);
+    if(!ta)return;
+    ta.addEventListener('input',function(){ta.classList.toggle('ed',ta.value.trim()!==gSpoken[i])});
   });
   document.getElementById('review').classList.add('show');
-  setTimeout(function(){ document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'}); }, 100);
+  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})},100);
+}
+function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(ta){ta.value=gSpoken[i];ta.classList.remove('ed')}})}
+
+// ─── DOCX image embedding helpers ────────────────────────────────────────────
+function makeRelXml(existingRels,imgCount){
+  // Add image relationships to the rels file
+  var rels=existingRels;
+  var results=[];
+  for(var i=0;i<imgCount;i++){
+    var rId='rIdMathImg'+(i+1);
+    var target='media/mathimg'+(i+1)+'.png';
+    var rel='<Relationship Id="'+rId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+target+'"/>';
+    if(!rels.includes(rId)) rels=rels.replace('</Relationships>',rel+'</Relationships>');
+    results.push({rId:rId,target:target});
+  }
+  return{rels:rels,imgs:results};
 }
 
-function resetAll(){
-  gParas.forEach(function(_,i){
-    var ta = document.getElementById('fst'+i);
-    if(ta){ ta.value = gSpoken[i]; ta.classList.remove('edited'); }
-  });
+function inlineImgXml(rId,widthEmu,heightEmu,altText){
+  // Build OOXML inline drawing element
+  var id=Math.floor(Math.random()*90000)+10000;
+  return '<w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">'
+    +'<wp:extent cx="'+widthEmu+'" cy="'+heightEmu+'"/>'
+    +'<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+    +'<wp:docPr id="'+id+'" name="Math'+id+'" descr="'+esc(altText)+'"/>'
+    +'<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+    +'<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+    +'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+    +'<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+    +'<pic:nvPicPr><pic:cNvPr id="'+id+'" name="Math'+id+'"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr>'
+    +'<pic:blipFill><a:blip r:embed="'+rId+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+    +'<pic:spPr bwMode="auto"><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+widthEmu+'" cy="'+heightEmu+'"/></a:xfrm>'
+    +'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></pic:spPr>'
+    +'</pic:pic></a:graphicData></a:graphic>'
+    +'</wp:inline></w:drawing>';
 }
 
-// ─── Export ──────────────────────────────────────────────────────────────────
+// ─── Export ───────────────────────────────────────────────────────────────────
 async function buildDoc(){
-  var texts = gParas.map(function(_,i){ var ta=document.getElementById('fst'+i); return ta?ta.value.trim():gSpoken[i]; });
-  var bold = document.getElementById('optBold').checked;
-  var italic = document.getElementById('optItalic').checked;
-  var sz = gSize * 2; // half-points
+  var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
+  var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
 
-  // Build spoken run XML
-  function spokenRunXml(text){
-    var b = bold?'<w:b/>':'', it = italic?'<w:i/>':'';
-    var rp = b+it+'<w:color w:val="'+gColor+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
-    var tx = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    return '<w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve"> '+tx+'</w:t></w:r>';
+  // Show progress during export (image rendering takes time)
+  document.getElementById('prog').classList.add('show');
+  setP(5,'Rendering equations as images…');
+
+  function spokenRun(text){
+    var b=bold?'<w:b/>':'',it=italic?'<w:i/>':'';
+    var rp=b+it+'<w:color w:val="'+gColor+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
+    var tx=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return'<w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve"> '+tx+'</w:t></w:r>';
   }
 
-  // For each math paragraph:
-  // 1. Find its oMath elements in the raw XML and wrap each in w:vanish
-  // 2. Append the spoken run at the end of the paragraph (before </w:p>)
-  // 3. Normalize line spacing to single
-  var newXml = gDocXml;
+  // Step 1: Render all equations as PNG images
+  var images=[];
+  for(var i=0;i<gOmml.length;i++){
+    setP(5+Math.round(i/gOmml.length*60),'Rendering equation '+(i+1)+' of '+gOmml.length+'…');
+    var nodes=gOmml[i].nodes;
+    var pngResult=null;
+    for(var j=0;j<nodes.length;j++){
+      pngResult=await renderEquationAsPng(nodes[j]);
+      if(pngResult)break;
+    }
+    images.push(pngResult);
+    await new Promise(function(r){setTimeout(r,10)}); // yield to UI
+  }
 
-  // Process in reverse paraId order to keep positions valid
-  var items = gParas.map(function(mp,i){ return {paraid:mp.paraid, text:texts[i]}; }).filter(function(x){ return x.paraid; });
-  items.reverse(); // process last paragraph first
+  setP(70,'Building document…');
+
+  // Step 2: Get/update the relationships file
+  var relsPath='word/_rels/document.xml.rels';
+  var relsXml=await gZip.file(relsPath).async('string');
+  var relResult=makeRelXml(relsXml,images.length);
+
+  // Step 3: Process each math paragraph in the document XML
+  var newXml=gDocXml;
+  var items=gParas.map(function(mp,i){return{paraid:mp.paraid,text:texts[i],imgInfo:images[i],relId:relResult.imgs[i]?relResult.imgs[i].rId:null}})
+                  .filter(function(x){return x.paraid})
+                  .reverse();
 
   items.forEach(function(item){
-    var search = 'w14:paraId="'+item.paraid+'"';
-    var paraStart = newXml.indexOf(search);
-    if(paraStart < 0) return;
-    // Find actual opening of <w:p ...>
-    var pOpen = newXml.lastIndexOf('<w:p ', paraStart);
-    if(pOpen < 0) return;
-    var pClose = newXml.indexOf('</w:p>', paraStart) + 6;
-    if(pClose < 6) return;
+    var search='w14:paraId="'+item.paraid+'"';
+    var found=newXml.indexOf(search);
+    if(found<0)return;
+    var pOpen=newXml.lastIndexOf('<w:p ',found);
+    if(pOpen<0)return;
+    var pClose=newXml.indexOf('</w:p>',found)+6;
+    if(pClose<6)return;
 
-    var paraSrc = newXml.substring(pOpen, pClose);
+    var para=newXml.substring(pOpen,pClose);
+    var replacement='';
 
-    // 1. Wrap ALL oMath content in vanish: replace <w:r containing oMath or the oMathPara
-    // Strategy: find each <m:oMath (or <oMath) block and wrap its CONTAINING run or the oMath itself
-    // in a vanish run. Since oMath can be inline in a run OR standalone, we handle both.
-    // Simplest reliable approach: wrap the entire oMath element text in a hidden run.
-    // The oMath IS the content Word reads — vanish it, add spoken text as visible run.
-
-    // Find all oMath blocks in this paragraph
-    var patchedPara = paraSrc;
-
-    // Vanish each oMath by injecting a vanish wrapper run around it
-    // In OOXML, oMath can appear as a direct child of w:p (wrapped in w:oMathPara or not)
-    // We insert <w:rPr><w:vanish/></w:rPr> into any run containing math
-    // Simpler: find the raw oMath tags and wrap them in a hidden paragraph run
-
-    // Actually the cleanest approach in raw XML:
-    // Replace every <m:oMath or <oMath occurrence with a version wrapped in vanish
-    // by injecting vanish into the run properties of surrounding context.
-    // SIMPLEST that works: insert <w:rPr><w:vanish/></w:rPr> as first child of each <m:oMath> tag.
-    // Word treats this as math run properties and will not read it aloud.
-
-    // Use the w:rPr vanish inside the math equation's control properties
-    // Actually for Read Aloud suppression, the most reliable approach is:
-    // wrap the oMath in a w:sdt (structured document tag) with no special properties
-    // OR use the fact that adding a vanish run BEFORE the oMath causes RA to skip it.
-
-    // PROVEN approach: replace each oMath block with:
-    // <w:r><w:rPr><w:vanish/></w:rPr><w:t> </w:t></w:r>[original oMath]
-    // This doesn't hide the oMath visually but the spoken run before it
-    // causes Read Aloud to jump to the spoken run.
-    // ACTUALLY: the correct approach is to add w:vanish to the ctrlPr inside oMath.
-
-    // Let's use the definitive approach: add <w:vanish/> inside <w:rPr> that wraps
-    // the entire oMath run. In OOXML, you wrap oMath in a run-like element.
-    // The correct XML is: the oMath paragraph gets a hidden formatting mark.
-
-    // WORKING approach confirmed from research:
-    // Add a run with vanish AROUND the math equation block in the paragraph.
-    // oMath in Word is self-contained — to suppress reading it, we add
-    // a <w:rPr><w:vanish/></w:rPr> run before it with a zero-width space,
-    // then add the spoken text run after it. Read Aloud reads the spoken run.
-    // The formula remains fully visible.
-
-    // Find oMath positions in patchedPara
-    var ostart = patchedPara.indexOf('<m:oMath>');
-    if(ostart < 0) ostart = patchedPara.indexOf('<oMath>');
-
-    if(ostart >= 0){
-      // Add vanish marker run before the oMath block, spoken run before </w:p>
-      var vanishRun = '<w:r><w:rPr><w:vanish/><w:specVanish/></w:rPr><w:t>\u200B</w:t></w:r>';
-      // Insert vanish run before first oMath
-      patchedPara = patchedPara.slice(0, ostart) + vanishRun + patchedPara.slice(ostart);
+    // Build the replacement content: image run + spoken text run
+    if(item.imgInfo&&item.relId){
+      // Convert px to EMU (English Metric Units): 1px = 9525 EMU at 96dpi
+      var wEmu=Math.round(item.imgInfo.width/2*9525); // divide by 2 for 2x scale
+      var hEmu=Math.round(item.imgInfo.height/2*9525);
+      // Cap width to reasonable page width (~5.5 inches = 5029200 EMU)
+      if(wEmu>5029200){var scale=5029200/wEmu;wEmu=5029200;hEmu=Math.round(hEmu*scale)}
+      replacement='<w:r>'+inlineImgXml(item.relId,wEmu,hEmu,item.text)+'</w:r>';
     }
 
-    // 2. Normalize line spacing (collapse giant work-space spacing)
-    var spStart = patchedPara.indexOf('<w:spacing ');
-    var spEnd = spStart >= 0 ? patchedPara.indexOf('/>', spStart) : -1;
-    var normalSpacing = '<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
-    if(spStart >= 0 && spEnd >= 0){
-      patchedPara = patchedPara.slice(0, spStart) + normalSpacing + patchedPara.slice(spEnd + 2);
-    } else {
-      var pPrEnd = patchedPara.indexOf('</w:pPr>');
-      if(pPrEnd >= 0) patchedPara = patchedPara.slice(0,pPrEnd) + normalSpacing + patchedPara.slice(pPrEnd);
+    replacement+=spokenRun(item.text);
+
+    // Replace oMath blocks with the image+spoken run
+    var result=para;
+    var oStart,oEnd,inserted=false;
+    while((oStart=result.indexOf('<m:oMath>'))>=0){
+      oEnd=result.indexOf('</m:oMath>',oStart);
+      if(oEnd<0)break;
+      oEnd+='</m:oMath>'.length;
+      if(!inserted){result=result.slice(0,oStart)+replacement+result.slice(oEnd);inserted=true}
+      else{result=result.slice(0,oStart)+result.slice(oEnd)}
     }
+    // Handle namespace-stripped oMath
+    while((oStart=result.indexOf('<oMath>'))>=0){
+      oEnd=result.indexOf('</oMath>',oStart);if(oEnd<0)break;oEnd+='</oMath>'.length;
+      if(!inserted){result=result.slice(0,oStart)+replacement+result.slice(oEnd);inserted=true}
+      else{result=result.slice(0,oStart)+result.slice(oEnd)}
+    }
+    // If no oMath found but paragraph had math, still add spoken text
+    if(!inserted)result=result.slice(0,result.lastIndexOf('</w:p>'))+spokenRun(item.text)+result.slice(result.lastIndexOf('</w:p>'));
 
-    // 3. Append spoken text run before </w:p>
-    var closePara = patchedPara.lastIndexOf('</w:p>');
-    patchedPara = patchedPara.slice(0, closePara) + spokenRunXml(item.text) + patchedPara.slice(closePara);
+    // Normalize line spacing
+    var spStart=result.indexOf('<w:spacing '),spEnd=spStart>=0?result.indexOf('/>',spStart):-1;
+    var normalSp='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
+    if(spStart>=0&&spEnd>=0)result=result.slice(0,spStart)+normalSp+result.slice(spEnd+2);
+    else{var pPrEnd=result.indexOf('</w:pPr>');if(pPrEnd>=0)result=result.slice(0,pPrEnd)+normalSp+result.slice(pPrEnd)}
 
-    // Replace in newXml
-    newXml = newXml.slice(0, pOpen) + patchedPara + newXml.slice(pClose);
+    newXml=newXml.slice(0,pOpen)+result+newXml.slice(pClose);
   });
 
-  gZip.file('word/document.xml', newXml);
-  var blob = await gZip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
-  gZip.file('word/document.xml', gDocXml); // restore original
-  var url = URL.createObjectURL(blob);
-  var name = gFile.name.replace(/\.docx$/i,'') + '_ReadAloud.docx';
-  var dlBtn = document.getElementById('dlBtn');
-  dlBtn.href = url; dlBtn.download = name;
-  document.getElementById('dlInfo').textContent = gParas.length+' formula'+(gParas.length!==1?'s':'')+' converted \u2192 '+name;
-  document.getElementById('dlRow').classList.add('show');
-  document.getElementById('dlRow').scrollIntoView({behavior:'smooth', block:'nearest'});
+  setP(90,'Saving…');
+
+  // Step 4: Save images to zip
+  gZip.file(relsPath,relResult.rels);
+  for(var k=0;k<images.length;k++){
+    if(images[k]){
+      var imgPath='word/'+relResult.imgs[k].target;
+      var imgBytes=Uint8Array.from(atob(images[k].png),function(c){return c.charCodeAt(0)});
+      gZip.file(imgPath,imgBytes);
+    }
+  }
+  gZip.file('word/document.xml',newXml);
+
+  var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  // Restore original
+  gZip.file('word/document.xml',gDocXml);
+  gZip.file(relsPath,relsXml);
+
+  setP(100,'Done!');
+  document.getElementById('prog').classList.remove('show');
+
+  var url=URL.createObjectURL(blob);
+  var name=gFile.name.replace(/\.docx$/i,'')+'_ReadAloud.docx';
+  var dlBtn=document.getElementById('dlbtn');
+  dlBtn.href=url;dlBtn.download=name;
+  document.getElementById('dli').textContent=gParas.length+' formula'+(gParas.length!==1?'s':'')+' converted \u2192 '+name;
+  document.getElementById('dlrow').classList.add('show');
+  document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 </script>
 </body>
