@@ -404,7 +404,7 @@ async function exportDoc(){
 
   setP(68,'Building document…');
 
-  // Update relationships
+  // Update relationships - register main rId + sub-equation rIds
   var relsPath='word/_rels/document.xml.rels';
   var relsXml=await gZip.file(relsPath).async('string');
   var newRels=relsXml;
@@ -412,6 +412,12 @@ async function exportDoc(){
     var rid='rIdMath'+(k+1);
     var rel='<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'.png"/>';
     if(newRels.indexOf(rid)<0)newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
+    // Register up to 5 sub-equation rIds for mixed paragraphs
+    for(var s=1;s<=5;s++){
+      var subRid=rid+'s'+s;
+      var subRel='<Relationship Id="'+subRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'.png"/>';
+      if(newRels.indexOf(subRid)<0)newRels=newRels.replace('</Relationships>',subRel+'</Relationships>');
+    }
   }
 
   // Register PNG in Content_Types.xml
@@ -427,11 +433,30 @@ async function exportDoc(){
     var pOpen=newXml.lastIndexOf('<w:p ',found);if(pOpen<0)return;
     var pClose=newXml.indexOf('</w:p>',found)+6;
     var para=newXml.substring(pOpen,pClose);
-    var imgRun='<w:r>'+imgXml(item.rid,item.img.wEmu,item.img.hEmu,item.text)+'</w:r>';
-    var replacement=imgRun+spkRun(item.text,gColor,sz,bold,italic);
-    var result=para,inserted=false,os,oe;
-    while((os=result.indexOf('<m:oMath>'))>=0){oe=result.indexOf('</m:oMath>',os)+'</m:oMath>'.length;if(!inserted){result=result.slice(0,os)+replacement+result.slice(oe);inserted=true}else{result=result.slice(0,os)+result.slice(oe)}}
-    while((os=result.indexOf('<oMath>'))>=0){oe=result.indexOf('</oMath>',os)+'</oMath>'.length;if(!inserted){result=result.slice(0,os)+replacement+result.slice(oe);inserted=true}else{result=result.slice(0,os)+result.slice(oe)}}
+    var result=para;
+
+    // Replace EACH oMath with its image individually (preserves surrounding text)
+    // Use a counter to assign unique rIds per equation in this paragraph
+    var eqCount=0;
+    var tags=[['<m:oMath>','</m:oMath>'],['<oMath>','</oMath>']];
+    tags.forEach(function(pair){
+      var os,oe;
+      while((os=result.indexOf(pair[0]))>=0){
+        oe=result.indexOf(pair[1],os)+pair[1].length;
+        if(oe<pair[1].length)break;
+        // Use the paragraph rid for first equation, sub-ids for extras
+        var thisRid=eqCount===0?item.rid:item.rid+'s'+eqCount;
+        var imgR='<w:r>'+imgXml(thisRid,item.img.wEmu,item.img.hEmu,item.text)+'</w:r>';
+        result=result.slice(0,os)+imgR+result.slice(oe);
+        eqCount++;
+      }
+    });
+
+    // Add spoken text ONCE at the end of the paragraph (after all equations)
+    var closeTag=result.lastIndexOf('</w:p>');
+    result=result.slice(0,closeTag)+spkRun(item.text,gColor,sz,bold,italic)+result.slice(closeTag);
+
+    // Normalize line spacing
     var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1,norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
     if(spS>=0&&spE>=0)result=result.slice(0,spS)+norm+result.slice(spE+2);
     else{var pp2=result.indexOf('</w:pPr>');if(pp2>=0)result=result.slice(0,pp2)+norm+result.slice(pp2)}
