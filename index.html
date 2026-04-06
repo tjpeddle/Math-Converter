@@ -264,11 +264,14 @@ async function renderPng(omathNode){
         ctx.fillStyle='white';ctx.fillRect(0,0,W,H);
         ctx.drawImage(img,0,0);
         URL.revokeObjectURL(url);
-        var b64=canvas.toDataURL('image/png').split(',')[1];
-        // EMU calculation: at 2x render, 1px = 1/2 of original
-        // Original: 1ex = 10px, rendered at 2x so W pixels = wpx original px
-        // At 96dpi: 1px = 9525 EMU → but we want to match ~12pt font size
-        // 1ex at 12pt ≈ 6pt ≈ 6/72 inch = 79375 EMU per ex
+        // Flatten to RGB by drawing onto a white canvas (Word needs RGB not RGBA)
+        var canvas2=document.createElement('canvas');
+        canvas2.width=W;canvas2.height=H;
+        var ctx2=canvas2.getContext('2d');
+        ctx2.fillStyle='white';
+        ctx2.fillRect(0,0,W,H);
+        ctx2.drawImage(canvas,0,0);
+        var b64=canvas2.toDataURL('image/png').split(',')[1];
         var wEmu=Math.round(wpx*79375);
         var hEmu=Math.round(hpx*79375);
         var MAX=4572000; // ~5 inches
