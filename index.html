@@ -351,42 +351,74 @@ async function run(){
     var allParas=Array.from(xmlDoc.querySelectorAll('p'));
     gParas=[];gSpoken=[];gUnicode=[];gOmml=[];
     allParas.forEach(function(p,idx){
-      // Find all oMath nodes (including inside oMathPara)
       var maths=Array.from(p.querySelectorAll('oMath'));
       if(!maths.length)return;
-
       var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
       if(!paraid)return;
 
-      // Get plain text in the paragraph (outside equations)
-      var plainText='';
+      // Walk children in document order to classify each equation
+      var questionEqIdx=[];   // equation indices that are question formulas
+      var answerEqIdx=[];     // equation indices that are answer choices (a. b. c. d.)
+      var eqCounter=0;
+      var prevText='';
+      var isOmathParaOnly=true; // true if paragraph is just a standalone oMathPara
+
       Array.from(p.childNodes).forEach(function(child){
         var tag=child.nodeName||'';
-        if(tag==='oMath'||tag==='m:oMath'||tag==='oMathPara'||tag==='m:oMathPara')return;
-        var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
-        Array.from(ts).forEach(function(t){if(t.textContent)plainText+=t.textContent});
+        var localTag=tag.split(':').pop().split('}').pop();
+        if(localTag==='pPr')return;
+
+        if(localTag==='oMath'||localTag==='oMathPara'){
+          if(localTag==='oMath')isOmathParaOnly=false;
+          // Check if preceded by answer label a./b./c./d.
+          var pt=prevText.trim();
+          var isAnswerChoice=pt===''?false:
+            /^[a-eA-E]\.$/.test(pt)||/^[a-eA-E]\.\s*$/.test(pt)||
+            pt.endsWith('a.')||pt.endsWith('b.')||pt.endsWith('c.')||pt.endsWith('d.')||pt.endsWith('e.');
+          if(isAnswerChoice){
+            answerEqIdx.push(eqCounter);
+          } else {
+            questionEqIdx.push(eqCounter);
+          }
+          eqCounter++;
+        } else {
+          // Collect text from non-math children
+          var childText='';
+          var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
+          Array.from(ts).forEach(function(t){if(t.textContent)childText+=t.textContent});
+          if(childText.trim())prevText=childText;
+        }
       });
 
-      // Detect answer choices — if paragraph has a./b./c./d. it's a question with answers
-      var hasAnswers=/\ba\.\s|\bb\.\s|\bc\.\s|\bd\.\s/.test(plainText);
-      // If many equations (>3) it's likely answer choices or formula sheet
-      var manyEqs=maths.length>3;
-      // Should we add spoken text?
-      var addSpoken=!hasAnswers&&!manyEqs;
+      // Build spoken text only for question equations
+      var questionSpoken=[];
+      var allSpoken=[];
+      maths.forEach(function(m,i){
+        var s=o2s(m);
+        if(s){
+          allSpoken.push(s);
+          if(questionEqIdx.indexOf(i)>=0)questionSpoken.push(s);
+        }
+      });
 
-      // Build spoken text from ALL equations (for review panel display)
-      // but only INSERT into doc if addSpoken
-      var spoken=maths.map(function(m){return o2s(m)}).filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
+      // spoken = only question equations joined
+      var spoken=questionSpoken.join(', ').replace(/\s+/g,' ').trim();
+      // For review panel show all spoken
+      var displaySpoken=allSpoken.join(', ').replace(/\s+/g,' ').trim();
+
+      // addSpoken: only if there are question equations and not oMathPara-only
+      var addSpoken=questionEqIdx.length>0&&!isOmathParaOnly&&spoken.length>0;
+
       // Build per-equation unicode strings
       var unicodes=maths.map(function(m){return o2u(m)||'[formula]'});
 
-      var warn=hasAnswers||manyEqs;
-      gParas.push({idx:idx,paraid:paraid,warn:warn,addSpoken:addSpoken,mathCount:maths.length});
-      gSpoken.push(spoken);
+      var warn=answerEqIdx.length>0;
+      gParas.push({idx:idx,paraid:paraid,warn:warn,addSpoken:addSpoken,mathCount:maths.length,answerEqIdx:answerEqIdx});
+      gSpoken.push(displaySpoken||spoken);
       gUnicode.push(unicodes);
       gOmml.push(maths);
     });
-    setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
+        setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
     document.getElementById('prog').classList.remove('show');
     document.getElementById('btnGo').disabled=false;
     renderReview();
