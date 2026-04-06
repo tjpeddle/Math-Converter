@@ -390,32 +390,243 @@ async function run(){
         }
       });
 
-      // Build spoken text only for question equations
-      var questionSpoken=[];
-      var allSpoken=[];
-      maths.forEach(function(m,i){
-        var s=o2s(m);
-        if(s){
-          allSpoken.push(s);
-          if(questionEqIdx.indexOf(i)>=0)questionSpoken.push(s);
+      // Build per-equation spoken text and unicode strings
+      var eqSpokens=maths.map(function(m){return o2s(m)||''});
+      var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
+      var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
+
+      gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
+      gSpoken.push(allSpoken);
+      gUnicode.push(eqUnicodes);
+      gOmml.push(maths);
+    });
+        setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
+    document.getElementById('prog').classList.remove('show');
+    document.getElementById('btnGo').disabled=false;
+    renderReview();
+  }catch(e){document.getElementById('prog').classList.remove('show');document.getElementById('btnGo').disabled=false;showErr('Error: '+e.message);console.error(e)}
+}
+
+function renderReview(){
+  var wc=gParas.filter(function(p){return p.warn}).length;
+  document.getElementById('rc').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+(wc?' — '+wc+' flagged':'');
+  var rows='';
+  gParas.forEach(function(mp,i){
+    var w=mp.warn;
+    rows+='<tr'+(w?' class="warn-row"':'')+'><td class="num">#'+(i+1)+'</td><td>'+(w?'<div class="wbadge">⚠ verify</div>':'')+'<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea></td></tr>';
+  });
+  document.getElementById('ftable').innerHTML=rows;
+  gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(!ta)return;ta.addEventListener('input',function(){ta.classList.toggle('ed',ta.value.trim()!==gSpoken[i])})});
+  document.getElementById('review').classList.add('show');
+  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})},100);
+}
+function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(ta){ta.value=gSpoken[i];ta.classList.remove('ed')}})}
+
+// ── Export ─────────────────────────────────────────────────────────────────────
+async function exportDoc(){
+  var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
+  var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
+  document.getElementById('prog').classList.add('show');
+  setP(5,'Rendering formula images...');
+
+  // Render each equation as its own PNG image
+  // images[i] = array of {b64,wEmu,hEmu} one per oMath in paragraph i
+  var images=[];
+  for(var i=0;i<gUnicode.length;i++){
+    setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'...');
+    var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'?')});
+    images.push(paraImgs);
+    await new Promise(function(r){setTimeout(r,5)});
+  }
+
+  setP(68,'Building document...');
+
+  // Register all image relationships
+  var relsPath='word/_rels/document.xml.rels';
+  var relsXml=await gZip.file(relsPath).async('string');
+  var newRels=relsXml;
+  for(var k=0;k<images.length;k++){
+    for(var eq=0;eq<images[k].length;eq++){
+      var eqRid='rIdMath'+(k+1)+'e'+eq;
+      if(newRels.indexOf(eqRid)<0){
+        var rel='<Relationship Id="'+eqRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'_'+eq+'.png"/>';
+        newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
+      }
+    }
+  }
+
+  // Register PNG content type
+  var ctXml=await gZip.file('[Content_Types].xml').async('string');
+  var newCt=ctXml.indexOf('image/png')<0?ctXml.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>'):ctXml;
+
+  // Process each math paragraph
+  var newXml=gDocXml;
+  // Build per-equation spoken texts from gOmml
+  var paraList=gParas.map(function(mp,i){
+    var eqSpokens=gOmml[i].map(function(m){return o2s(m)||''});
+    return{
+      paraid:mp.paraid,
+      spoken:texts[i],
+      imgs:images[i],
+      unicodes:gUnicode[i],
+      eqSpokens:eqSpokens,
+      paraIdx:i
+    };
+  }).filter(function(x){return x.paraid}).reverse();
+
+  paraList.forEach(function(item){
+    var search='w14:paraId="'+item.paraid+'"';
+    var found=newXml.indexOf(search);if(found<0)return;
+    var pOpen=newXml.lastIndexOf('<w:p ',found);if(pOpen<0)return;
+    var pClose=newXml.indexOf('</w:p>',found)+6;
+    var para=newXml.substring(pOpen,pClose);
+
+    // Split paragraph on each oMath/oMathPara tag
+    // Replace each one with image + optional spoken text
+    // Detect answer choices by looking at text immediately before each equation
+    var result='';
+    var remaining=para;
+    var eqIdx=0;
+    var mathTags=['<m:oMathPara>','<m:oMath>','<oMathPara>','<oMath>'];
+    var mathEnds={'<m:oMathPara>':'</m:oMathPara>','<m:oMath>':'</m:oMath>',
+                  '<oMathPara>':'</oMathPara>','<oMath>':'</oMath>'};
+
+    while(true){
+      // Find earliest math tag
+      var earliest=-1,earliestTag='',earliestClose='';
+      mathTags.forEach(function(tag){
+        var pos=remaining.indexOf(tag);
+        if(pos>=0&&(earliest<0||pos<earliest)){
+          earliest=pos;earliestTag=tag;earliestClose=mathEnds[tag];
+        }
+      });
+      if(earliest<0)break;
+
+      // Everything before this equation
+      var before=remaining.slice(0,earliest);
+      var closePos=remaining.indexOf(earliestClose,earliest+earliestTag.length);
+      if(closePos<0)break;
+      var after=remaining.slice(closePos+earliestClose.length);
+
+      // Get image for this equation
+      var imgIdx=Math.min(eqIdx,item.imgs.length-1);
+      var img=item.imgs[imgIdx];
+      var rid='rIdMath'+(item.paraIdx+1)+'e'+imgIdx;
+      var imgRun='<w:r>'+imgXml(rid,img.wEmu,img.hEmu,'formula')+'</w:r>';
+
+      // Get spoken text for this specific equation
+      var eqSpoken=item.eqSpokens[Math.min(eqIdx,item.eqSpokens.length-1)]||'';
+
+      // Every equation gets image + spoken text
+      // Student sees image, Word reads spoken text
+      var replacement=imgRun;
+      if(eqSpoken){
+        replacement+=spkRun(eqSpoken,gColor,sz,bold,italic);
+      }
+
+      result+=before+replacement;
+      remaining=after;
+      eqIdx++;
+    }
+    result+=remaining;
+
+    // Normalize line spacing
+    var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1;
+    var norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
+    if(spS>=0&&spE>=0)result=result.slice(0,spS)+norm+result.slice(spE+2);
+    else{var pp2=result.indexOf('</w:pPr>');if(pp2>=0)result=result.slice(0,pp2)+norm+result.slice(pp2)}
+
+    newXml=newXml.slice(0,pOpen)+result+newXml.slice(pClose);
+  });
+
+  setP(88,'Saving...');
+  gZip.file('word/document.xml',newXml);
+  gZip.file(relsPath,newRels);
+  gZip.file('[Content_Types].xml',newCt);
+  for(var m=0;m<images.length;m++){
+    for(var eq=0;eq<images[m].length;eq++){
+      var pngBytes=Uint8Array.from(atob(images[m][eq].b64),function(c){return c.charCodeAt(0)});
+      gZip.file('word/media/mimg'+(m+1)+'_'+eq+'.png',pngBytes);
+    }
+  }
+  var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  gZip.file('word/document.xml',gDocXml);gZip.file(relsPath,relsXml);gZip.file('[Content_Types].xml',ctXml);
+  setP(100,'Done!');
+  setTimeout(function(){document.getElementById('prog').classList.remove('show')},1500);
+  var url=URL.createObjectURL(blob);
+  var name=gFile.name.replace(/\.docx$/i,'')+'_ReadAloud.docx';
+  document.getElementById('dlbtn').href=url;document.getElementById('dlbtn').download=name;
+  document.getElementById('dli').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+' converted → '+name;
+  document.getElementById('dlrow').classList.add('show');
+  document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+
+async function run(){
+  if(!gFile)return;
+  document.getElementById('btnGo').disabled=true;
+  document.getElementById('prog').classList.add('show');
+  document.getElementById('review').classList.remove('show');
+  document.getElementById('dlrow').classList.remove('show');
+  document.getElementById('err').classList.remove('show');
+  try{
+    setP(10,'Reading file…');
+    var buf=await gFile.arrayBuffer();
+    gZip=await JSZip.loadAsync(buf);
+    setP(25,'Parsing equations…');
+    gDocXml=await gZip.file('word/document.xml').async('string');
+    var parser=new DOMParser();
+    var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
+    var allParas=Array.from(xmlDoc.querySelectorAll('p'));
+    gParas=[];gSpoken=[];gUnicode=[];gOmml=[];
+    allParas.forEach(function(p,idx){
+      var maths=Array.from(p.querySelectorAll('oMath'));
+      if(!maths.length)return;
+      var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
+      if(!paraid)return;
+
+      // Walk children in document order to classify each equation
+      var questionEqIdx=[];   // equation indices that are question formulas
+      var answerEqIdx=[];     // equation indices that are answer choices (a. b. c. d.)
+      var eqCounter=0;
+      var prevText='';
+      var isOmathParaOnly=true; // true if paragraph is just a standalone oMathPara
+
+      Array.from(p.childNodes).forEach(function(child){
+        var tag=child.nodeName||'';
+        var localTag=tag.split(':').pop().split('}').pop();
+        if(localTag==='pPr')return;
+
+        if(localTag==='oMath'||localTag==='oMathPara'){
+          if(localTag==='oMath')isOmathParaOnly=false;
+          // Check if preceded by answer label a./b./c./d.
+          var pt=prevText.trim();
+          var isAnswerChoice=pt===''?false:
+            /^[a-eA-E]\.$/.test(pt)||/^[a-eA-E]\.\s*$/.test(pt)||
+            pt.endsWith('a.')||pt.endsWith('b.')||pt.endsWith('c.')||pt.endsWith('d.')||pt.endsWith('e.');
+          if(isAnswerChoice){
+            answerEqIdx.push(eqCounter);
+          } else {
+            questionEqIdx.push(eqCounter);
+          }
+          eqCounter++;
+        } else {
+          // Collect text from non-math children
+          var childText='';
+          var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
+          Array.from(ts).forEach(function(t){if(t.textContent)childText+=t.textContent});
+          if(childText.trim())prevText=childText;
         }
       });
 
-      // spoken = only question equations joined
-      var spoken=questionSpoken.join(', ').replace(/\s+/g,' ').trim();
-      // For review panel show all spoken
-      var displaySpoken=allSpoken.join(', ').replace(/\s+/g,' ').trim();
+      // Build per-equation spoken text and unicode strings
+      var eqSpokens=maths.map(function(m){return o2s(m)||''});
+      var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
+      var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
 
-      // addSpoken: only if there are question equations and not oMathPara-only
-      var addSpoken=questionEqIdx.length>0&&!isOmathParaOnly&&spoken.length>0;
-
-      // Build per-equation unicode strings
-      var unicodes=maths.map(function(m){return o2u(m)||'[formula]'});
-
-      var warn=answerEqIdx.length>0;
-      gParas.push({idx:idx,paraid:paraid,warn:warn,addSpoken:addSpoken,mathCount:maths.length,answerEqIdx:answerEqIdx});
-      gSpoken.push(displaySpoken||spoken);
-      gUnicode.push(unicodes);
+      gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
+      gSpoken.push(allSpoken);
+      gUnicode.push(eqUnicodes);
       gOmml.push(maths);
     });
         setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
