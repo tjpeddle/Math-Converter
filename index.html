@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Math Read Aloud Converter — OARS HPU</title>
+<title>Math Read Aloud — OARS HPU</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Lato:ital,wght@0,400;0,700;1,400&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#F7F5F0;--card:#fff;--bd:#E2DDD6;--tx:#18160F;--mu:#8C8880;--gr:#1B4332;--gl:#EAF2ED;--gm:#2D6A4F;--am:#92400E;--ab:#FEF3C7;--abr:#F59E0B;--rd:#991B1B;--rb:#FEF2F2}
+:root{--bg:#F7F5F0;--card:#fff;--bd:#E2DDD6;--tx:#18160F;--mu:#8C8880;--gr:#1B4332;--gl:#EAF2ED;--gm:#2D6A4F;--am:#92400E;--ab:#FEF3C7;--rd:#991B1B;--rb:#FEF2F2}
 html,body{min-height:100vh;background:var(--bg);font-family:'Lato',sans-serif;color:var(--tx)}
 .wrap{max-width:720px;margin:0 auto;padding:3rem 1.5rem 6rem}
 header{margin-bottom:2rem}
@@ -17,6 +17,10 @@ h1 span{color:var(--gm)}
 .sub{margin-top:.4rem;font-size:13px;color:var(--mu);line-height:1.6;max-width:520px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:1.3rem;margin-bottom:1rem}
 .clbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:.8rem}
+.apikey{width:100%;padding:.6rem .8rem;border:1px solid var(--bd);border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;background:var(--bg);color:var(--tx)}
+.apikey:focus{outline:none;border-color:var(--gm)}
+.api-note{font-size:11.5px;color:var(--mu);margin-top:.4rem;line-height:1.5}
+.api-note a{color:var(--gm)}
 .drop{border:2px dashed var(--bd);border-radius:10px;padding:1.8rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);position:relative}
 .drop:hover,.drop.over{border-color:var(--gm);background:var(--gl)}
 .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -26,7 +30,7 @@ h1 span{color:var(--gm)}
 .fpill{display:none;align-items:center;gap:8px;background:var(--gl);border:1px solid var(--gm);border-radius:7px;padding:.5rem .9rem;margin-top:.7rem;font-size:12px}
 .fpill.show{display:flex}
 .fpill .fn{font-family:'DM Mono',monospace;color:var(--gr);font-weight:500;flex:1;word-break:break-all}
-.fpill button{background:none;border:none;cursor:pointer;color:var(--mu);padding:2px 4px;border-radius:3px}
+.fpill button{background:none;border:none;cursor:pointer;color:var(--mu);padding:2px 4px}
 .ctrls{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start}
 .cg{display:flex;flex-direction:column;gap:.35rem}
 .cg-l{font-size:10.5px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.07em}
@@ -48,44 +52,755 @@ h1 span{color:var(--gm)}
 .pl{font-size:11.5px;color:var(--mu);font-family:'DM Mono',monospace}
 .err{display:none;background:var(--rb);border:1px solid #FCA5A5;border-radius:8px;padding:.7rem 1rem;margin-top:.7rem;font-size:13px;color:var(--rd)}
 .err.show{display:block}
-.review{display:none;margin-top:1rem}
-.review.show{display:block}
-.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
-.rt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
-.rc{font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)}
-.rnote{font-size:12.5px;color:var(--mu);background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:.55rem .85rem;margin-bottom:.85rem;line-height:1.6}
-.rnote strong{color:var(--am)}
-.ftable{width:100%;border-collapse:collapse;display:block;max-height:500px;overflow-y:auto}
-.ftable tr{border-bottom:1px solid var(--bg)}
-.ftable tr.warn-row{background:var(--ab)}
-.ftable td{padding:5px 4px;vertical-align:top}
-.ftable .num{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);white-space:nowrap;width:30px;padding-top:8px}
-.ftable textarea{width:100%;font-size:13px;font-family:'Lato',sans-serif;padding:5px 8px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--tx);resize:vertical;min-height:44px;display:block;box-sizing:border-box;line-height:1.5}
-.ftable textarea:focus{outline:none;border-color:var(--gm)}
-.ftable textarea.ed{border-color:#3B82F6;background:#EFF6FF}
-.ftable .wbadge{font-size:10px;color:var(--am);margin-bottom:2px}
-.ract{display:flex;gap:.7rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--bd)}
-.btn-exp{flex:1;padding:.7rem;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;background:var(--gr);border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s}
-.btn-exp:hover{background:var(--gm)}
-.btn-rst{padding:.7rem 1rem;font-family:'Lato',sans-serif;font-size:13px;color:var(--mu);background:transparent;border:1px solid var(--bd);border-radius:9px;cursor:pointer}
-.dlrow{display:none;align-items:center;gap:10px;margin-top:.8rem;padding:.75rem 1rem;background:var(--gl);border:1px solid var(--gm);border-radius:9px}
+.dlrow{display:none;align-items:center;gap:10px;margin-top:1rem;padding:.75rem 1rem;background:var(--gl);border:1px solid var(--gm);border-radius:9px}
 .dlrow.show{display:flex}
-.btn-dl{display:inline-flex;align-items:center;gap:6px;padding:.45rem 1rem;background:var(--gr);color:#fff;border:none;border-radius:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-dl{display:inline-flex;align-items:center;gap:6px;padding:.5rem 1.2rem;background:var(--gr);color:#fff;border:none;border-radius:7px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
 .dli{font-size:12px;color:var(--mu);font-family:'DM Mono',monospace;flex:1}
-#mjax{position:fixed;left:-9999px;top:0;width:800px;visibility:hidden;background:white}
 </style>
 </head>
 <body>
 
-<!-- Hidden MathJax rendering area -->
-<div id="mjax"></div>
+<!-- Engine code embedded safely as HTML-escaped text -->
+<script id="engineCode" type="text/plain">#!/usr/bin/env python3
+&quot;&quot;&quot;
+Math Read Aloud Converter — OARS/HPU
+Converts Word exam .docx files: replaces OMML equations with
+PNG images (student sees formula) + spoken text (Word reads correctly).
+&quot;&quot;&quot;
+
+import sys, os, io, re, base64, zipfile, json
+import xml.etree.ElementTree as ET
+import matplotlib
+matplotlib.use(&#x27;Agg&#x27;)
+import matplotlib.pyplot as plt
+from PIL import Image
+
+# ══════════════════════════════════════════════════════════════════
+# OMML → LaTeX
+# ══════════════════════════════════════════════════════════════════
+GREEK_TEX={&#x27;α&#x27;:r&#x27;\alpha&#x27;,&#x27;β&#x27;:r&#x27;\beta&#x27;,&#x27;γ&#x27;:r&#x27;\gamma&#x27;,&#x27;δ&#x27;:r&#x27;\delta&#x27;,&#x27;ε&#x27;:r&#x27;\epsilon&#x27;,
+           &#x27;θ&#x27;:r&#x27;\theta&#x27;,&#x27;λ&#x27;:r&#x27;\lambda&#x27;,&#x27;μ&#x27;:r&#x27;\mu&#x27;,&#x27;π&#x27;:r&#x27;\pi&#x27;,&#x27;ρ&#x27;:r&#x27;\rho&#x27;,
+           &#x27;σ&#x27;:r&#x27;\sigma&#x27;,&#x27;τ&#x27;:r&#x27;\tau&#x27;,&#x27;φ&#x27;:r&#x27;\phi&#x27;,&#x27;ω&#x27;:r&#x27;\omega&#x27;,&#x27;Δ&#x27;:r&#x27;\Delta&#x27;,
+           &#x27;Σ&#x27;:r&#x27;\Sigma&#x27;,&#x27;Π&#x27;:r&#x27;\Pi&#x27;,&#x27;Ω&#x27;:r&#x27;\Omega&#x27;,&#x27;Γ&#x27;:r&#x27;\Gamma&#x27;,&#x27;Λ&#x27;:r&#x27;\Lambda&#x27;}
+SYM_TEX={&#x27;±&#x27;:r&#x27;\pm&#x27;,&#x27;∓&#x27;:r&#x27;\mp&#x27;,&#x27;×&#x27;:r&#x27;\times&#x27;,&#x27;÷&#x27;:r&#x27;\div&#x27;,&#x27;∞&#x27;:r&#x27;\infty&#x27;,
+         &#x27;≤&#x27;:r&#x27;\leq&#x27;,&#x27;≥&#x27;:r&#x27;\geq&#x27;,&#x27;≠&#x27;:r&#x27;\neq&#x27;,&#x27;≈&#x27;:r&#x27;\approx&#x27;,&#x27;≡&#x27;:r&#x27;\equiv&#x27;,
+         &#x27;∈&#x27;:r&#x27;\in&#x27;,&#x27;∉&#x27;:r&#x27;\notin&#x27;,&#x27;⊂&#x27;:r&#x27;\subset&#x27;,&#x27;⊆&#x27;:r&#x27;\subseteq&#x27;,
+         &#x27;∪&#x27;:r&#x27;\cup&#x27;,&#x27;∩&#x27;:r&#x27;\cap&#x27;,&#x27;∅&#x27;:r&#x27;\emptyset&#x27;,&#x27;∀&#x27;:r&#x27;\forall&#x27;,&#x27;∃&#x27;:r&#x27;\exists&#x27;,
+         &#x27;→&#x27;:r&#x27;\to&#x27;,&#x27;⇒&#x27;:r&#x27;\Rightarrow&#x27;,&#x27;⟺&#x27;:r&#x27;\Leftrightarrow&#x27;,
+         &#x27;∂&#x27;:r&#x27;\partial&#x27;,&#x27;∇&#x27;:r&#x27;\nabla&#x27;,&#x27;°&#x27;:r&#x27;^{\circ}&#x27;,
+         &#x27;⊥&#x27;:r&#x27;\perp&#x27;,&#x27;∥&#x27;:r&#x27;\parallel&#x27;,&#x27;∠&#x27;:r&#x27;\angle&#x27;}
+KFN_TEX={&#x27;sin&#x27;:r&#x27;\sin&#x27;,&#x27;cos&#x27;:r&#x27;\cos&#x27;,&#x27;tan&#x27;:r&#x27;\tan&#x27;,&#x27;csc&#x27;:r&#x27;\csc&#x27;,&#x27;sec&#x27;:r&#x27;\sec&#x27;,
+         &#x27;cot&#x27;:r&#x27;\cot&#x27;,&#x27;sinh&#x27;:r&#x27;\sinh&#x27;,&#x27;cosh&#x27;:r&#x27;\cosh&#x27;,&#x27;tanh&#x27;:r&#x27;\tanh&#x27;,
+         &#x27;arcsin&#x27;:r&#x27;\arcsin&#x27;,&#x27;arccos&#x27;:r&#x27;\arccos&#x27;,&#x27;arctan&#x27;:r&#x27;\arctan&#x27;,
+         &#x27;ln&#x27;:r&#x27;\ln&#x27;,&#x27;log&#x27;:r&#x27;\log&#x27;,&#x27;exp&#x27;:r&#x27;\exp&#x27;,&#x27;lim&#x27;:r&#x27;\lim&#x27;,
+         &#x27;det&#x27;:r&#x27;\det&#x27;,&#x27;max&#x27;:r&#x27;\max&#x27;,&#x27;min&#x27;:r&#x27;\min&#x27;,
+         &#x27;dx&#x27;:&#x27;dx&#x27;,&#x27;dy&#x27;:&#x27;dy&#x27;,&#x27;dt&#x27;:&#x27;dt&#x27;,&#x27;du&#x27;:&#x27;du&#x27;,&#x27;dv&#x27;:&#x27;dv&#x27;,&#x27;dw&#x27;:&#x27;dw&#x27;}
+SKIP_TEX={&#x27;fPr&#x27;,&#x27;sSupPr&#x27;,&#x27;sSubPr&#x27;,&#x27;sSubSupPr&#x27;,&#x27;dPr&#x27;,&#x27;radPr&#x27;,&#x27;naryPr&#x27;,&#x27;mPr&#x27;,
+          &#x27;rPr&#x27;,&#x27;ctrlPr&#x27;,&#x27;rFonts&#x27;,&#x27;sz&#x27;,&#x27;color&#x27;,&#x27;accPr&#x27;,&#x27;groupChrPr&#x27;,
+          &#x27;limLowPr&#x27;,&#x27;limUppPr&#x27;,&#x27;barPr&#x27;,&#x27;funcPr&#x27;,&#x27;phantPr&#x27;,&#x27;sPrePr&#x27;,
+          &#x27;type&#x27;,&#x27;i&#x27;,&#x27;b&#x27;,&#x27;strike&#x27;,&#x27;vertAlign&#x27;,&#x27;noProof&#x27;}
+
+def _gch(node, name):
+    for c in node:
+        if c.tag.split(&#x27;}&#x27;)[-1] == name: return c
+    return None
+
+def _raw(node):
+    parts = []
+    for el in node.iter():
+        if el.tag.split(&#x27;}&#x27;)[-1] == &#x27;t&#x27; and el.text and el.text.strip():
+            parts.append(el.text.strip())
+    return &#x27;&#x27;.join(parts)
+
+def _t2tex(s):
+    s = s.strip()
+    if s in KFN_TEX: return KFN_TEX[s]
+    out = &#x27;&#x27;
+    for c in s:
+        if c in GREEK_TEX: out += GREEK_TEX[c]
+        elif c in SYM_TEX: out += SYM_TEX[c]
+        else: out += c
+    return out
+
+def _wtex(node):
+    tag = node.tag.split(&#x27;}&#x27;)[-1] if &#x27;}&#x27; in node.tag else node.tag
+    if tag in SKIP_TEX: return &#x27;&#x27;
+    ch = list(node)
+    PASS = {&#x27;oMath&#x27;,&#x27;oMathPara&#x27;,&#x27;e&#x27;,&#x27;fName&#x27;,&#x27;box&#x27;,&#x27;borderBox&#x27;,&#x27;groupChr&#x27;,&#x27;mr&#x27;}
+    if tag in PASS: return &#x27;&#x27;.join(_wtex(c) for c in ch)
+    if tag in (&#x27;sup&#x27;,&#x27;sub&#x27;,&#x27;deg&#x27;,&#x27;lim&#x27;): return _raw(node)
+    if tag in (&#x27;num&#x27;,&#x27;den&#x27;): return &#x27;&#x27;.join(_wtex(c) for c in ch)
+    if tag == &#x27;r&#x27;:
+        tel = _gch(node,&#x27;t&#x27;)
+        if tel is not None and tel.text and tel.text.strip():
+            return _t2tex(tel.text.strip())
+        return &#x27;&#x27;.join(_wtex(c) for c in ch)
+    if tag == &#x27;t&#x27;:
+        s = node.text or &#x27;&#x27;
+        return _t2tex(s.strip()) if s.strip() else &#x27;&#x27;
+    if tag == &#x27;f&#x27;:
+        fPr = _gch(node,&#x27;fPr&#x27;); style = &#x27;bar&#x27;
+        if fPr is not None:
+            for fc in fPr:
+                if fc.tag.split(&#x27;}&#x27;)[-1] == &#x27;type&#x27;:
+                    style = fc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;bar&#x27;)
+        n_el = _gch(node,&#x27;num&#x27;); d_el = _gch(node,&#x27;den&#x27;)
+        n = &#x27;&#x27;.join(_wtex(c) for c in (list(n_el) if n_el is not None else []))
+        d = &#x27;&#x27;.join(_wtex(c) for c in (list(d_el) if d_el is not None else []))
+        return r&#x27;\binom{&#x27;+n+&#x27;}{&#x27;+d+&#x27;}&#x27; if style == &#x27;noBar&#x27; else r&#x27;\frac{&#x27;+n+&#x27;}{&#x27;+d+&#x27;}&#x27;
+    if tag == &#x27;sSup&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sup&#x27;)
+        base = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        exp = _raw(s_el) if s_el is not None else &#x27;&#x27;
+        if len(base) &gt; 1 and not base.startswith(&#x27;\\&#x27;): base = &#x27;{&#x27; + base + &#x27;}&#x27;
+        return base + &#x27;^{&#x27; + exp + &#x27;}&#x27;
+    if tag == &#x27;sSub&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sub&#x27;)
+        base = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        sub = _raw(s_el) if s_el is not None else &#x27;&#x27;
+        if len(base) &gt; 1 and not base.startswith(&#x27;\\&#x27;): base = &#x27;{&#x27; + base + &#x27;}&#x27;
+        return base + &#x27;_{&#x27; + sub + &#x27;}&#x27;
+    if tag == &#x27;sSubSup&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sub&#x27;); p_el = _gch(node,&#x27;sup&#x27;)
+        base = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        return base + &#x27;_{&#x27; + _raw(s_el) + &#x27;}^{&#x27; + _raw(p_el) + &#x27;}&#x27;
+    if tag == &#x27;d&#x27;:
+        dPr = _gch(node,&#x27;dPr&#x27;); oc = &#x27;(&#x27;; cc = &#x27;)&#x27;
+        if dPr is not None:
+            for dc in dPr:
+                dct = dc.tag.split(&#x27;}&#x27;)[-1]
+                mns = &#x27;http://schemas.openxmlformats.org/officeDocument/2006/math&#x27;
+                if dct == &#x27;begChr&#x27;:
+                    v = dc.get(&#x27;{%s}val&#x27; % mns, &#x27;(&#x27;)
+                    if v is not None: oc = v
+                if dct == &#x27;endChr&#x27;:
+                    v = dc.get(&#x27;{%s}val&#x27; % mns, &#x27;)&#x27;)
+                    if v is not None: cc = v
+        parts = [c for c in ch if c.tag.split(&#x27;}&#x27;)[-1] == &#x27;e&#x27;]
+        inner = &#x27;,&#x27;.join(&#x27;&#x27;.join(_wtex(c2) for c2 in list(p)) for p in parts)
+        OC = {&#x27;(&#x27;:r&#x27;\left(&#x27;, &#x27;[&#x27;:r&#x27;\left[&#x27;, &#x27;{&#x27;:r&#x27;\left\{&#x27;, &#x27;|&#x27;:r&#x27;\left|&#x27;, &#x27;&#x27;:r&#x27;&#x27;}
+        CC = {&#x27;)&#x27;:r&#x27;\right)&#x27;, &#x27;]&#x27;:r&#x27;\right]&#x27;, &#x27;}&#x27;:r&#x27;\right\}&#x27;, &#x27;|&#x27;:r&#x27;\right|&#x27;, &#x27;&#x27;:r&#x27;&#x27;}
+        if oc == &#x27;&#x27; and cc == &#x27;&#x27;: return inner
+        return OC.get(oc, r&#x27;\left&#x27; + oc) + inner + CC.get(cc, r&#x27;\right&#x27; + cc)
+    if tag == &#x27;func&#x27;:
+        fn_el = _gch(node,&#x27;fName&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        fn = &#x27;&#x27;.join(_wtex(c) for c in (list(fn_el) if fn_el is not None else []))
+        arg = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        return fn + r&#x27;\left(&#x27; + arg + r&#x27;\right)&#x27;
+    if tag == &#x27;rad&#x27;:
+        rPr = _gch(node,&#x27;radPr&#x27;); d_el = _gch(node,&#x27;deg&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        inner = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        hide = False
+        if rPr is not None:
+            for rc in rPr:
+                if rc.tag.split(&#x27;}&#x27;)[-1] == &#x27;degHide&#x27;:
+                    v = rc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;&#x27;)
+                    hide = not v or v in (&#x27;1&#x27;,&#x27;true&#x27;,&#x27;on&#x27;)
+        if hide or d_el is None: return r&#x27;\sqrt{&#x27; + inner + &#x27;}&#x27;
+        dt = _raw(d_el).strip()
+        return r&#x27;\sqrt{&#x27; + inner + &#x27;}&#x27; if not dt or dt == &#x27;2&#x27; else r&#x27;\sqrt[&#x27; + dt + &#x27;]{&#x27; + inner + &#x27;}&#x27;
+    if tag == &#x27;nary&#x27;:
+        nPr = _gch(node,&#x27;naryPr&#x27;); s_el = _gch(node,&#x27;sub&#x27;); u_el = _gch(node,&#x27;sup&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        chr_c = &#x27;∫&#x27;; sh = False; sph = False
+        if nPr is not None:
+            for nc in nPr:
+                nct = nc.tag.split(&#x27;}&#x27;)[-1]
+                v = nc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;&#x27;)
+                if nct == &#x27;chr&#x27; and v: chr_c = v
+                if nct == &#x27;subHide&#x27;: sh = v in (&#x27;1&#x27;,&#x27;on&#x27;)
+                if nct == &#x27;supHide&#x27;: sph = v in (&#x27;1&#x27;,&#x27;on&#x27;)
+        SN = {&#x27;∑&#x27;:r&#x27;\sum&#x27;,&#x27;∏&#x27;:r&#x27;\prod&#x27;,&#x27;∫&#x27;:r&#x27;\int&#x27;,&#x27;∬&#x27;:r&#x27;\iint&#x27;,&#x27;∭&#x27;:r&#x27;\iiint&#x27;,&#x27;∮&#x27;:r&#x27;\oint&#x27;}
+        sym = SN.get(chr_c, r&#x27;\int&#x27;)
+        fr = _raw(s_el) if not sh and s_el is not None else &#x27;&#x27;
+        to = _raw(u_el) if not sph and u_el is not None else &#x27;&#x27;
+        ex = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        return sym + (&#x27;_{&#x27;+fr+&#x27;}&#x27; if fr else &#x27;&#x27;) + (&#x27;^{&#x27;+to+&#x27;}&#x27; if to else &#x27;&#x27;) + ex
+    if tag == &#x27;limLow&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); l_el = _gch(node,&#x27;lim&#x27;)
+        expr = &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else []))
+        limt = _raw(l_el).replace(&#x27;→&#x27;,r&#x27;\to&#x27;).replace(&#x27;∞&#x27;,r&#x27;\infty&#x27;) if l_el is not None else &#x27;&#x27;
+        return r&#x27;\lim_{&#x27; + limt + &#x27;} &#x27; + expr
+    if tag == &#x27;limUpp&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); l_el = _gch(node,&#x27;lim&#x27;)
+        return &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else [])) + &#x27;^{&#x27; + (_raw(l_el) if l_el is not None else &#x27;&#x27;) + &#x27;}&#x27;
+    if tag == &#x27;bar&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;)
+        return r&#x27;\overline{&#x27; + &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else [])) + &#x27;}&#x27;
+    if tag == &#x27;acc&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;)
+        return r&#x27;\hat{&#x27; + &#x27;&#x27;.join(_wtex(c) for c in (list(e_el) if e_el is not None else [])) + &#x27;}&#x27;
+    if tag == &#x27;phant&#x27;: return &#x27;&#x27;
+    return &#x27;&#x27;.join(_wtex(c) for c in ch)
+
+def omml_to_latex(omath_el):
+    return _wtex(omath_el).strip()
+
+# ══════════════════════════════════════════════════════════════════
+# OMML → Spoken Math
+# ══════════════════════════════════════════════════════════════════
+GREEK_SPK={&#x27;α&#x27;:&#x27;alpha&#x27;,&#x27;β&#x27;:&#x27;beta&#x27;,&#x27;γ&#x27;:&#x27;gamma&#x27;,&#x27;δ&#x27;:&#x27;delta&#x27;,&#x27;ε&#x27;:&#x27;epsilon&#x27;,
+           &#x27;θ&#x27;:&#x27;theta&#x27;,&#x27;λ&#x27;:&#x27;lambda&#x27;,&#x27;μ&#x27;:&#x27;mu&#x27;,&#x27;π&#x27;:&#x27;pi&#x27;,&#x27;ρ&#x27;:&#x27;rho&#x27;,&#x27;σ&#x27;:&#x27;sigma&#x27;,
+           &#x27;τ&#x27;:&#x27;tau&#x27;,&#x27;φ&#x27;:&#x27;phi&#x27;,&#x27;ω&#x27;:&#x27;omega&#x27;,&#x27;Δ&#x27;:&#x27;Delta&#x27;,&#x27;Σ&#x27;:&#x27;Sigma&#x27;,
+           &#x27;Π&#x27;:&#x27;Pi&#x27;,&#x27;Ω&#x27;:&#x27;Omega&#x27;,&#x27;Γ&#x27;:&#x27;Gamma&#x27;,&#x27;Λ&#x27;:&#x27;Lambda&#x27;}
+SYM_SPK={&#x27;±&#x27;:&#x27;plus or minus&#x27;,&#x27;∓&#x27;:&#x27;minus or plus&#x27;,&#x27;×&#x27;:&#x27;times&#x27;,&#x27;÷&#x27;:&#x27;divided by&#x27;,
+         &#x27;∞&#x27;:&#x27;infinity&#x27;,&#x27;≤&#x27;:&#x27;less than or equal to&#x27;,&#x27;≥&#x27;:&#x27;greater than or equal to&#x27;,
+         &#x27;≠&#x27;:&#x27;not equal to&#x27;,&#x27;≈&#x27;:&#x27;approximately equal to&#x27;,&#x27;≡&#x27;:&#x27;is equivalent to&#x27;,
+         &#x27;∈&#x27;:&#x27;is an element of&#x27;,&#x27;∉&#x27;:&#x27;is not an element of&#x27;,&#x27;⊂&#x27;:&#x27;is a subset of&#x27;,
+         &#x27;∪&#x27;:&#x27;union&#x27;,&#x27;∩&#x27;:&#x27;intersection&#x27;,&#x27;∅&#x27;:&#x27;the empty set&#x27;,&#x27;∀&#x27;:&#x27;for all&#x27;,
+         &#x27;∃&#x27;:&#x27;there exists&#x27;,&#x27;→&#x27;:&#x27;approaches&#x27;,&#x27;∂&#x27;:&#x27;partial&#x27;,&#x27;°&#x27;:&#x27;degrees&#x27;,
+         &#x27;⊥&#x27;:&#x27;perpendicular to&#x27;,&#x27;∥&#x27;:&#x27;parallel to&#x27;,&#x27;∠&#x27;:&#x27;angle&#x27;}
+KFN_SPK={&#x27;sin&#x27;:&#x27;sine&#x27;,&#x27;cos&#x27;:&#x27;cosine&#x27;,&#x27;tan&#x27;:&#x27;tangent&#x27;,&#x27;csc&#x27;:&#x27;cosecant&#x27;,&#x27;sec&#x27;:&#x27;secant&#x27;,
+         &#x27;cot&#x27;:&#x27;cotangent&#x27;,&#x27;sinh&#x27;:&#x27;hyperbolic sine&#x27;,&#x27;cosh&#x27;:&#x27;hyperbolic cosine&#x27;,
+         &#x27;tanh&#x27;:&#x27;hyperbolic tangent&#x27;,&#x27;arcsin&#x27;:&#x27;arcsine&#x27;,&#x27;arccos&#x27;:&#x27;arccosine&#x27;,
+         &#x27;arctan&#x27;:&#x27;arctangent&#x27;,&#x27;ln&#x27;:&#x27;the natural log of&#x27;,&#x27;log&#x27;:&#x27;log&#x27;,
+         &#x27;exp&#x27;:&#x27;e to the&#x27;,&#x27;lim&#x27;:&#x27;the limit&#x27;,&#x27;det&#x27;:&#x27;the determinant of&#x27;,
+         &#x27;max&#x27;:&#x27;the maximum of&#x27;,&#x27;min&#x27;:&#x27;the minimum of&#x27;,
+         &#x27;dx&#x27;:&#x27;d x&#x27;,&#x27;dy&#x27;:&#x27;d y&#x27;,&#x27;dt&#x27;:&#x27;d t&#x27;,&#x27;du&#x27;:&#x27;d u&#x27;,&#x27;dv&#x27;:&#x27;d v&#x27;,&#x27;dw&#x27;:&#x27;d w&#x27;}
+
+def _xlate(s):
+    s = s.strip()
+    if s in KFN_SPK: return KFN_SPK[s]
+    out = &#x27;&#x27;
+    for c in s:
+        if c in GREEK_SPK: out += &#x27; &#x27; + GREEK_SPK[c] + &#x27; &#x27;
+        elif c in SYM_SPK: out += &#x27; &#x27; + SYM_SPK[c] + &#x27; &#x27;
+        else: out += c
+    return out.strip()
+
+def _expand_ops(s):
+    s = s.strip()
+    if not s: return &#x27;&#x27;
+    r = s
+    if &#x27;(&#x27; in r:
+        def prep(m):
+            inner = m.group(1)
+            inner = re.sub(r&#x27;([a-zA-Z0-9])\+(\d)&#x27;, r&#x27;\1 plus \2&#x27;, inner)
+            inner = re.sub(r&#x27;([a-zA-Z0-9])-(\d)&#x27;, r&#x27;\1 minus \2&#x27;, inner)
+            inner = re.sub(r&#x27;([a-zA-Z0-9])\+([a-zA-Z])&#x27;, r&#x27;\1 plus \2&#x27;, inner)
+            inner = re.sub(r&#x27;([a-zA-Z0-9])-([a-zA-Z])&#x27;, r&#x27;\1 minus \2&#x27;, inner)
+            inner = re.sub(r&#x27;(\d)([a-zA-Z])&#x27;, r&#x27;\1 \2&#x27;, inner)
+            return &#x27; the quantity &#x27; + inner + &#x27;, end quantity &#x27;
+        r = re.sub(r&#x27;\(([^)]*)\)&#x27;, prep, r)
+        r = re.sub(r&#x27;end quantity\s+the quantity&#x27;, &#x27;end quantity, times the quantity&#x27;, r)
+    r = re.sub(r&#x27;^\s*=\s*-\s*(\d)&#x27;, r&#x27;equals negative \1&#x27;, r)
+    r = re.sub(r&#x27;^\s*=\s*(\d)&#x27;, r&#x27;equals \1&#x27;, r)
+    r = re.sub(r&#x27;^\s*\+\s*(\d)&#x27;, r&#x27;plus \1&#x27;, r)
+    r = re.sub(r&#x27;^\s*-\s*(\d)&#x27;, r&#x27;minus \1&#x27;, r)
+    r = re.sub(r&#x27;^\s*\+\s*$&#x27;, &#x27;plus&#x27;, r)
+    r = re.sub(r&#x27;^\s*-\s*$&#x27;, &#x27;minus&#x27;, r)
+    r = re.sub(r&#x27;^\s*-\s+(the quantity)&#x27;, r&#x27;minus \1&#x27;, r)
+    r = re.sub(r&#x27;([a-zA-Z0-9])\+(\d)&#x27;, r&#x27;\1 plus \2&#x27;, r)
+    r = re.sub(r&#x27;([a-zA-Z0-9])-(\d)&#x27;, r&#x27;\1 minus \2&#x27;, r)
+    r = re.sub(r&#x27;([a-zA-Z0-9])\+([a-zA-Z])&#x27;, r&#x27;\1 plus \2&#x27;, r)
+    r = re.sub(r&#x27;([a-zA-Z0-9])-([a-zA-Z])&#x27;, r&#x27;\1 minus \2&#x27;, r)
+    r = re.sub(r&#x27;([a-zA-Z0-9])=(-?\d)&#x27;, r&#x27;\1 equals \2&#x27;, r)
+    r = re.sub(r&#x27;=0\b&#x27;, &#x27;equals 0&#x27;, r)
+    r = re.sub(r&#x27;(\d)([a-zA-Z])&#x27;, r&#x27;\1 \2&#x27;, r)
+    r = r.replace(&#x27;(&#x27;,&#x27;&#x27;).replace(&#x27;)&#x27;,&#x27;&#x27;)
+    return re.sub(r&#x27;\s+&#x27;, &#x27; &#x27;, r).strip()
+
+def _pwr(n):
+    n = n.strip()
+    try:
+        p = int(n)
+        nm = [&#x27;&#x27;,&#x27;first&#x27;,&#x27;second&#x27;,&#x27;third&#x27;,&#x27;fourth&#x27;,&#x27;fifth&#x27;,&#x27;sixth&#x27;,&#x27;seventh&#x27;,&#x27;eighth&#x27;,&#x27;ninth&#x27;,&#x27;tenth&#x27;]
+        return (nm[p] if 1 &lt;= p &lt;= 10 else str(p)+&#x27;th&#x27;) + &#x27; power&#x27;
+    except: return n + &#x27; power&#x27;
+
+def _spk_exp(base, raw):
+    exp = raw.strip(); neg = exp.startswith(&#x27;-&#x27;); abs_e = exp[1:].strip() if neg else exp
+    if base == &#x27;e&#x27;: return (&#x27;e to the negative &#x27; + abs_e) if neg else (&#x27;e to the &#x27; + abs_e)
+    if abs_e == &#x27;0&#x27;: return base + &#x27; to the zero power&#x27;
+    if abs_e == &#x27;1&#x27;: return (base + &#x27; to the negative 1&#x27;) if neg else base
+    if abs_e == &#x27;2&#x27;: return (base + &#x27; to the negative 2&#x27;) if neg else (base + &#x27; squared&#x27;)
+    if abs_e == &#x27;3&#x27;: return (base + &#x27; to the negative 3&#x27;) if neg else (base + &#x27; cubed&#x27;)
+    return (base + &#x27; to the negative &#x27; + abs_e) if neg else (base + &#x27; to the &#x27; + _pwr(abs_e))
+
+def _wall(nodes):
+    r = []
+    for n in nodes:
+        for t in _wnode(n):
+            if t and t.strip(): r.append(t.strip())
+    return r
+
+def _wnode(node):
+    if node is None: return []
+    tag = node.tag.split(&#x27;}&#x27;)[-1] if &#x27;}&#x27; in node.tag else node.tag
+    if tag in SKIP_TEX: return []
+    ch = list(node)
+    PASS = {&#x27;oMath&#x27;,&#x27;oMathPara&#x27;,&#x27;e&#x27;,&#x27;fName&#x27;,&#x27;box&#x27;,&#x27;borderBox&#x27;,&#x27;groupChr&#x27;}
+    if tag in PASS: return _wall(ch)
+    if tag in (&#x27;sup&#x27;,&#x27;sub&#x27;,&#x27;deg&#x27;,&#x27;lim&#x27;):
+        r = _raw(node); return [r] if r else []
+    if tag in (&#x27;num&#x27;,&#x27;den&#x27;): return _wall(ch)
+    if tag == &#x27;r&#x27;:
+        tel = _gch(node,&#x27;t&#x27;)
+        if tel is not None and tel.text and tel.text.strip():
+            x = _xlate(tel.text.strip()); return [_expand_ops(x)] if x else []
+        return _wall(ch)
+    if tag == &#x27;t&#x27;:
+        s = node.text or &#x27;&#x27;
+        if s.strip(): x = _xlate(s.strip()); return [_expand_ops(x)] if x else []
+        return []
+    if tag == &#x27;f&#x27;:
+        fPr = _gch(node,&#x27;fPr&#x27;); style = &#x27;bar&#x27;
+        if fPr is not None:
+            for fc in fPr:
+                if fc.tag.split(&#x27;}&#x27;)[-1] == &#x27;type&#x27;:
+                    style = fc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;bar&#x27;)
+        n_el = _gch(node,&#x27;num&#x27;); d_el = _gch(node,&#x27;den&#x27;)
+        n = &#x27; &#x27;.join(_wall(list(n_el) if n_el is not None else []))
+        d = &#x27; &#x27;.join(_wall(list(d_el) if d_el is not None else []))
+        return [n + &#x27; choose &#x27; + d] if style == &#x27;noBar&#x27; else [n + &#x27; over &#x27; + d]
+    if tag == &#x27;sSup&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sup&#x27;)
+        base = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else [])).strip()
+        return [_spk_exp(base, _raw(s_el) if s_el is not None else &#x27;&#x27;)]
+    if tag == &#x27;sSub&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sub&#x27;)
+        base = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else [])).strip()
+        sub_r = _raw(s_el) if s_el is not None else &#x27;&#x27;
+        if base in (&#x27;log&#x27;,&#x27;log of&#x27;): return [&#x27;log base &#x27; + sub_r + &#x27; of&#x27;]
+        return [base + &#x27; sub &#x27; + sub_r]
+    if tag == &#x27;sSubSup&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); s_el = _gch(node,&#x27;sub&#x27;); p_el = _gch(node,&#x27;sup&#x27;)
+        base = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else [])).strip()
+        sub_r = _raw(s_el) if s_el is not None else &#x27;&#x27;
+        sup_r = _raw(p_el) if p_el is not None else &#x27;&#x27;
+        if re.match(r&#x27;^(sum|the sum)$&#x27;, base, re.I): return [&#x27;the sum from &#x27; + sub_r + &#x27; to &#x27; + sup_r]
+        if &#x27;integral&#x27; in base: return [&#x27;the integral from &#x27; + sub_r + &#x27; to &#x27; + sup_r]
+        if re.match(r&#x27;^(sine|cosine|tangent|secant|cosecant|cotangent)&#x27;, base, re.I):
+            return [base + &#x27; to the &#x27; + _pwr(sup_r) + &#x27; of&#x27;]
+        return [base + &#x27; sub &#x27; + sub_r + &#x27; to the &#x27; + _pwr(sup_r)]
+    if tag == &#x27;d&#x27;:
+        dPr = _gch(node,&#x27;dPr&#x27;); oc = &#x27;(&#x27;; cc = &#x27;)&#x27;
+        if dPr is not None:
+            mns = &#x27;http://schemas.openxmlformats.org/officeDocument/2006/math&#x27;
+            for dc in dPr:
+                dct = dc.tag.split(&#x27;}&#x27;)[-1]
+                if dct == &#x27;begChr&#x27;:
+                    v = dc.get(&#x27;{%s}val&#x27; % mns, &#x27;(&#x27;)
+                    if v is not None: oc = v
+                if dct == &#x27;endChr&#x27;:
+                    v = dc.get(&#x27;{%s}val&#x27; % mns, &#x27;)&#x27;)
+                    if v is not None: cc = v
+        parts = [c for c in ch if c.tag.split(&#x27;}&#x27;)[-1] == &#x27;e&#x27;]
+        inner = &#x27;, &#x27;.join(&#x27; &#x27;.join(_wall(list(p))) for p in parts)
+        if oc == &#x27;&#x27; and cc == &#x27;&#x27;: return [inner]
+        if oc == &#x27;|&#x27; and cc == &#x27;|&#x27;: return [&#x27;the absolute value of &#x27; + inner]
+        if oc == &#x27;‖&#x27; and cc == &#x27;‖&#x27;: return [&#x27;the norm of &#x27; + inner]
+        if oc == &#x27;{&#x27; and cc == &#x27;}&#x27;: return [&#x27;the set &#x27; + inner]
+        if oc == &#x27;⌈&#x27; and cc == &#x27;⌉&#x27;: return [&#x27;the ceiling of &#x27; + inner]
+        if oc == &#x27;⌊&#x27; and cc == &#x27;⌋&#x27;: return [&#x27;the floor of &#x27; + inner]
+        return [&#x27;the quantity &#x27; + inner + &#x27;, end quantity&#x27;]
+    if tag == &#x27;func&#x27;:
+        fn_el = _gch(node,&#x27;fName&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        fname = &#x27; &#x27;.join(_wall(list(fn_el) if fn_el is not None else [])).strip()
+        arg = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else [])).strip()
+        fl = fname.lower()
+        FT = {&#x27;sine&#x27;:&#x27;sine of&#x27;,&#x27;cosine&#x27;:&#x27;cosine of&#x27;,&#x27;tangent&#x27;:&#x27;tangent of&#x27;,
+              &#x27;cosecant&#x27;:&#x27;cosecant of&#x27;,&#x27;secant&#x27;:&#x27;secant of&#x27;,&#x27;cotangent&#x27;:&#x27;cotangent of&#x27;,
+              &#x27;arcsine&#x27;:&#x27;arcsine of&#x27;,&#x27;arccosine&#x27;:&#x27;arccosine of&#x27;,&#x27;arctangent&#x27;:&#x27;arctangent of&#x27;,
+              &#x27;hyperbolic sine&#x27;:&#x27;hyperbolic sine of&#x27;,&#x27;hyperbolic cosine&#x27;:&#x27;hyperbolic cosine of&#x27;,
+              &#x27;hyperbolic tangent&#x27;:&#x27;hyperbolic tangent of&#x27;,
+              &#x27;the natural log of&#x27;:&#x27;the natural log of&#x27;,&#x27;log of&#x27;:&#x27;log of&#x27;,&#x27;log&#x27;:&#x27;log of&#x27;,
+              &#x27;the limit&#x27;:&#x27;the limit as&#x27;,&#x27;the maximum of&#x27;:&#x27;the maximum of&#x27;,
+              &#x27;the minimum of&#x27;:&#x27;the minimum of&#x27;,&#x27;the determinant of&#x27;:&#x27;the determinant of&#x27;}
+        for k,v in FT.items():
+            if fl == k or fl.startswith(k): return [v + &#x27; &#x27; + arg]
+        if re.match(r&#x27;^[a-zA-Z]$&#x27;, fl): return [fl + &#x27; of &#x27; + arg]
+        return [fname + &#x27; of &#x27; + arg]
+    if tag == &#x27;rad&#x27;:
+        rPr = _gch(node,&#x27;radPr&#x27;); d_el = _gch(node,&#x27;deg&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        inner = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else []))
+        hide = False
+        if rPr is not None:
+            for rc in rPr:
+                if rc.tag.split(&#x27;}&#x27;)[-1] == &#x27;degHide&#x27;:
+                    v = rc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;&#x27;)
+                    hide = not v or v in (&#x27;1&#x27;,&#x27;true&#x27;,&#x27;on&#x27;)
+        if hide or d_el is None: return [&#x27;the square root of &#x27; + inner]
+        dt = _raw(d_el).strip()
+        if not dt or dt == &#x27;2&#x27;: return [&#x27;the square root of &#x27; + inner]
+        if dt == &#x27;3&#x27;: return [&#x27;the cube root of &#x27; + inner]
+        if dt == &#x27;4&#x27;: return [&#x27;the fourth root of &#x27; + inner]
+        return [&#x27;the &#x27; + dt + &#x27;th root of &#x27; + inner]
+    if tag == &#x27;nary&#x27;:
+        nPr = _gch(node,&#x27;naryPr&#x27;); s_el = _gch(node,&#x27;sub&#x27;); u_el = _gch(node,&#x27;sup&#x27;); e_el = _gch(node,&#x27;e&#x27;)
+        chr_c = &#x27;∑&#x27;; sh = False; sph = False
+        if nPr is not None:
+            for nc in nPr:
+                nct = nc.tag.split(&#x27;}&#x27;)[-1]
+                v = nc.get(&#x27;{http://schemas.openxmlformats.org/officeDocument/2006/math}val&#x27;,&#x27;&#x27;)
+                if nct == &#x27;chr&#x27; and v: chr_c = v
+                if nct == &#x27;subHide&#x27;: sh = v in (&#x27;1&#x27;,&#x27;on&#x27;)
+                if nct == &#x27;supHide&#x27;: sph = v in (&#x27;1&#x27;,&#x27;on&#x27;)
+        NL = {&#x27;∑&#x27;:&#x27;the sum&#x27;,&#x27;∏&#x27;:&#x27;the product&#x27;,&#x27;∫&#x27;:&#x27;the integral&#x27;,
+              &#x27;∬&#x27;:&#x27;the double integral&#x27;,&#x27;∭&#x27;:&#x27;the triple integral&#x27;,&#x27;∮&#x27;:&#x27;the line integral&#x27;}
+        lbl = NL.get(chr_c, &#x27;the operation&#x27;)
+        fr = _raw(s_el) if not sh and s_el is not None else &#x27;&#x27;
+        to = _raw(u_el) if not sph and u_el is not None else &#x27;&#x27;
+        ex = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else []))
+        out = lbl
+        if fr: out += &#x27; from &#x27; + fr
+        if to: out += &#x27; to &#x27; + to
+        if ex: out += &#x27; of &#x27; + ex
+        return [out]
+    if tag == &#x27;limLow&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;); l_el = _gch(node,&#x27;lim&#x27;)
+        expr = &#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else []))
+        limt = _raw(l_el) if l_el is not None else &#x27;&#x27;
+        if re.match(r&#x27;^(the\s+)?limit$&#x27;, expr.strip(), re.I): return [&#x27;the limit as &#x27; + limt]
+        return [expr + &#x27; as &#x27; + limt]
+    if tag == &#x27;bar&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;)
+        return [(&#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else []))) + &#x27; bar&#x27;]
+    if tag == &#x27;acc&#x27;:
+        e_el = _gch(node,&#x27;e&#x27;)
+        return [(&#x27; &#x27;.join(_wall(list(e_el) if e_el is not None else []))) + &#x27; hat&#x27;]
+    if tag == &#x27;phant&#x27;: return []
+    return _wall(ch)
+
+def _post_proc(tokens):
+    r = []; i = 0
+    while i &lt; len(tokens):
+        t = tokens[i]
+        if re.match(r&#x27;^[a-zA-Z]$&#x27;, t) and i+1 &lt; len(tokens):
+            nx = tokens[i+1]
+            if nx.startswith(&#x27;the quantity &#x27;) and &#x27;end quantity&#x27; in nx:
+                inner = re.sub(r&#x27;^the quantity\s*&#x27;,&#x27;&#x27;,nx).strip()
+                inner = re.sub(r&#x27;,?\s*end quantity.*$&#x27;,&#x27;&#x27;,inner).strip()
+                r.append(t + &#x27; of &#x27; + inner); i += 2; continue
+        if t.endswith(&#x27;end quantity&#x27;) and i+1 &lt; len(tokens):
+            nx = tokens[i+1]
+            if nx.startswith(&#x27;the quantity&#x27;) or nx.startswith(&#x27;times the quantity&#x27;):
+                r.append(t + &#x27;, times&#x27;); i += 1; continue
+        r.push(t) if hasattr(r,&#x27;push&#x27;) else r.append(t); i += 1
+    return _repair_splits(r)
+
+def _is_cont(tok):
+    return bool(re.match(r&#x27;^(x|y|z|[a-zA-Z])\s+(squared|cubed|to the)&#x27;, tok) or
+                re.match(r&#x27;^(plus|minus)\s+[\da-zA-Z]&#x27;, tok) or
+                re.match(r&#x27;^\d+\s+[a-zA-Z]&#x27;, tok) or
+                re.match(r&#x27;^[a-zA-Z]\s+(squared|cubed|to the|plus|minus)&#x27;, tok))
+
+def _repair_splits(tokens):
+    res = list(tokens); changed = True
+    while changed:
+        changed = False
+        for i in range(len(res)):
+            t = res[i]
+            if t.endswith(&#x27;end quantity&#x27;) and i+1 &lt; len(res):
+                nx = res[i+1]
+                mA = re.match(r&#x27;^(-\s*|minus\s+|plus\s+|\+\s*)(\d.*)&#x27;, nx)
+                if mA and i+2 &lt; len(res):
+                    op = &#x27;minus&#x27; if mA.group(1).strip() in (&#x27;-&#x27;,&#x27;minus&#x27;) else &#x27;plus&#x27;
+                    parts = [mA.group(2).strip()]; j = i+2
+                    while j &lt; len(res) and _is_cont(res[j]): parts.append(res[j]); j += 1
+                    if len(parts) &gt; 1:
+                        res = res[:i] + [t+&#x27;, &#x27;+op+&#x27; the quantity &#x27;+&#x27; &#x27;.join(parts)+&#x27;, end quantity&#x27;] + res[j:]
+                        changed = True; break
+            mB = re.match(r&#x27;^(.*end quantity),?\s+(\d+)$&#x27;, t)
+            if mB and i+1 &lt; len(res):
+                before = re.sub(r&#x27;,\s*$&#x27;,&#x27;&#x27;,mB.group(1)).strip(); parts = [mB.group(2)]; j = i+1
+                while j &lt; len(res) and _is_cont(res[j]): parts.append(res[j]); j += 1
+                if len(parts) &gt; 1:
+                    res = res[:i] + [before+&#x27;, times the quantity &#x27;+&#x27; &#x27;.join(parts)+&#x27;, end quantity&#x27;] + res[j:]
+                    changed = True; break
+    return res
+
+def omml_to_speech(omath_el):
+    tokens = _wall(list(omath_el))
+    tokens = _post_proc(tokens)
+    s = &#x27; &#x27;.join(tokens)
+    s = re.sub(r&#x27;\s+&#x27;, &#x27; &#x27;, s).replace(&#x27;,  ,&#x27;,&#x27;,&#x27;)
+    s = re.sub(r&#x27;,\s*,&#x27;, &#x27;,&#x27;, s)
+    s = re.sub(r&#x27;\bof of\b&#x27;, &#x27;of&#x27;, s)
+    s = re.sub(r&#x27;end quantity,?\s+end quantity&#x27;, &#x27;end quantity&#x27;, s)
+    return s.strip()
+
+# ══════════════════════════════════════════════════════════════════
+# LaTeX → PNG
+# ══════════════════════════════════════════════════════════════════
+def latex_to_png(latex_str, fontsize=14):
+    &quot;&quot;&quot;Render LaTeX math to PNG bytes. Returns (bytes, width_px, height_px).&quot;&quot;&quot;
+    try:
+        fig = plt.figure(figsize=(0.01, 0.01))
+        fig.patch.set_facecolor(&#x27;white&#x27;)
+        fig.text(0, 0, f&#x27;${latex_str}$&#x27;, fontsize=fontsize,
+                 color=&#x27;black&#x27;, fontfamily=&#x27;DejaVu Serif&#x27;, usetex=False)
+        buf = io.BytesIO()
+        fig.savefig(buf, format=&#x27;png&#x27;, dpi=150, bbox_inches=&#x27;tight&#x27;,
+                    facecolor=&#x27;white&#x27;, edgecolor=&#x27;none&#x27;, pad_inches=0.08)
+        plt.close(fig)
+        buf.seek(0)
+        img = Image.open(buf)
+        w, h = img.size
+        buf.seek(0)
+        return buf.read(), w, h
+    except Exception as e:
+        plt.close(&#x27;all&#x27;)
+        return None, 0, 0
+
+# ══════════════════════════════════════════════════════════════════
+# DOCX XML helpers
+# ══════════════════════════════════════════════════════════════════
+def _inline_img_xml(r_id, w_emu, h_emu, alt_text):
+    img_id = abs(hash(r_id)) % 90000 + 10000
+    alt = (alt_text or &#x27;&#x27;).replace(&#x27;&amp;&#x27;,&#x27;&amp;amp;&#x27;).replace(&#x27;&lt;&#x27;,&#x27;&amp;lt;&#x27;).replace(&#x27;&gt;&#x27;,&#x27;&amp;gt;&#x27;).replace(&#x27;&quot;&#x27;,&#x27;&amp;quot;&#x27;)
+    return (
+        f&#x27;&lt;w:drawing&gt;&#x27;
+        f&#x27;&lt;wp:inline xmlns:wp=&quot;http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing&quot; distT=&quot;0&quot; distB=&quot;0&quot; distL=&quot;0&quot; distR=&quot;0&quot;&gt;&#x27;
+        f&#x27;&lt;wp:extent cx=&quot;{w_emu}&quot; cy=&quot;{h_emu}&quot;/&gt;&#x27;
+        f&#x27;&lt;wp:effectExtent l=&quot;0&quot; t=&quot;0&quot; r=&quot;0&quot; b=&quot;0&quot;/&gt;&#x27;
+        f&#x27;&lt;wp:docPr id=&quot;{img_id}&quot; name=&quot;Math{img_id}&quot; descr=&quot;{alt}&quot;/&gt;&#x27;
+        f&#x27;&lt;wp:cNvGraphicFramePr&gt;&#x27;
+        f&#x27;&lt;a:graphicFrameLocks xmlns:a=&quot;http://schemas.openxmlformats.org/drawingml/2006/main&quot; noChangeAspect=&quot;1&quot;/&gt;&#x27;
+        f&#x27;&lt;/wp:cNvGraphicFramePr&gt;&#x27;
+        f&#x27;&lt;a:graphic xmlns:a=&quot;http://schemas.openxmlformats.org/drawingml/2006/main&quot;&gt;&#x27;
+        f&#x27;&lt;a:graphicData uri=&quot;http://schemas.openxmlformats.org/drawingml/2006/picture&quot;&gt;&#x27;
+        f&#x27;&lt;pic:pic xmlns:pic=&quot;http://schemas.openxmlformats.org/drawingml/2006/picture&quot;&gt;&#x27;
+        f&#x27;&lt;pic:nvPicPr&gt;&#x27;
+        f&#x27;&lt;pic:cNvPr id=&quot;{img_id}&quot; name=&quot;Math{img_id}&quot;/&gt;&#x27;
+        f&#x27;&lt;pic:cNvPicPr&gt;&lt;a:picLocks noChangeAspect=&quot;1&quot; noChangeArrowheads=&quot;1&quot;/&gt;&lt;/pic:cNvPicPr&gt;&#x27;
+        f&#x27;&lt;/pic:nvPicPr&gt;&#x27;
+        f&#x27;&lt;pic:blipFill&gt;&#x27;
+        f&#x27;&lt;a:blip r:embed=&quot;{r_id}&quot; xmlns:r=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships&quot;/&gt;&#x27;
+        f&#x27;&lt;a:stretch&gt;&lt;a:fillRect/&gt;&lt;/a:stretch&gt;&#x27;
+        f&#x27;&lt;/pic:blipFill&gt;&#x27;
+        f&#x27;&lt;pic:spPr bwMode=&quot;auto&quot;&gt;&#x27;
+        f&#x27;&lt;a:xfrm&gt;&lt;a:off x=&quot;0&quot; y=&quot;0&quot;/&gt;&lt;a:ext cx=&quot;{w_emu}&quot; cy=&quot;{h_emu}&quot;/&gt;&lt;/a:xfrm&gt;&#x27;
+        f&#x27;&lt;a:prstGeom prst=&quot;rect&quot;&gt;&lt;a:avLst/&gt;&lt;/a:prstGeom&gt;&lt;a:noFill/&gt;&#x27;
+        f&#x27;&lt;/pic:spPr&gt;&#x27;
+        f&#x27;&lt;/pic:pic&gt;&lt;/a:graphicData&gt;&lt;/a:graphic&gt;&#x27;
+        f&#x27;&lt;/wp:inline&gt;&lt;/w:drawing&gt;&#x27;
+    )
+
+def _spoken_run_xml(text, color, sz_half, bold, italic):
+    b = &#x27;&lt;w:b/&gt;&#x27; if bold else &#x27;&#x27;
+    it = &#x27;&lt;w:i/&gt;&#x27; if italic else &#x27;&#x27;
+    rp = f&#x27;{b}{it}&lt;w:color w:val=&quot;{color}&quot;/&gt;&lt;w:sz w:val=&quot;{sz_half}&quot;/&gt;&lt;w:szCs w:val=&quot;{sz_half}&quot;/&gt;&#x27;
+    tx = text.replace(&#x27;&amp;&#x27;,&#x27;&amp;amp;&#x27;).replace(&#x27;&lt;&#x27;,&#x27;&amp;lt;&#x27;).replace(&#x27;&gt;&#x27;,&#x27;&amp;gt;&#x27;).replace(&#x27;&quot;&#x27;,&#x27;&amp;quot;&#x27;)
+    return f&#x27;&lt;w:r&gt;&lt;w:rPr&gt;{rp}&lt;/w:rPr&gt;&lt;w:t xml:space=&quot;preserve&quot;&gt; {tx}&lt;/w:t&gt;&lt;/w:r&gt;&#x27;
+
+# ══════════════════════════════════════════════════════════════════
+# Main conversion function
+# ══════════════════════════════════════════════════════════════════
+def convert_docx(input_path, output_path, spoken_overrides=None,
+                 color=&#x27;7A776E&#x27;, font_size_pt=10, bold=True, italic=True,
+                 progress_cb=None):
+    &quot;&quot;&quot;
+    Convert a .docx file: replace OMML equations with PNG images + spoken text.
+    
+    Args:
+        input_path: Path to input .docx
+        output_path: Path to write output .docx
+        spoken_overrides: dict {index: spoken_text} for manual overrides
+        color: hex color for spoken text (no #)
+        font_size_pt: font size in points
+        bold/italic: formatting for spoken text
+        progress_cb: callback(pct, message) for progress updates
+    
+    Returns:
+        list of dicts: [{latex, spoken, warn}, ...] for review
+    &quot;&quot;&quot;
+    def prog(pct, msg):
+        if progress_cb: progress_cb(pct, msg)
+
+    ns_m = &#x27;http://schemas.openxmlformats.org/officeDocument/2006/math&#x27;
+    ns_w = &#x27;http://schemas.openxmlformats.org/wordprocessingml/2006/main&#x27;
+    ns_14 = &#x27;http://schemas.microsoft.com/office/word/2010/wordml&#x27;
+    sz_half = font_size_pt * 2
+
+    prog(5, &#x27;Reading document…&#x27;)
+    with zipfile.ZipFile(input_path, &#x27;r&#x27;) as z:
+        doc_xml = z.read(&#x27;word/document.xml&#x27;).decode(&#x27;utf-8&#x27;)
+        rels_xml = z.read(&#x27;word/_rels/document.xml.rels&#x27;).decode(&#x27;utf-8&#x27;)
+        all_files = {name: z.read(name) for name in z.namelist()}
+
+    prog(15, &#x27;Parsing equations…&#x27;)
+    tree = ET.fromstring(doc_xml)
+    all_paras = tree.findall(&#x27;.//{%s}p&#x27; % ns_w)
+
+    math_paras = []
+    for p in all_paras:
+        maths = p.findall(&#x27;.//{%s}oMath&#x27; % ns_m)
+        if not maths: continue
+        paraid = p.get(&#x27;{%s}paraId&#x27; % ns_14, &#x27;&#x27;)
+        latex_parts = [omml_to_latex(m) for m in maths]
+        spoken_parts = [omml_to_speech(m) for m in maths]
+        latex = &#x27; &#x27;.join(filter(None, latex_parts))
+        spoken = &#x27;, &#x27;.join(filter(None, spoken_parts))
+        spoken = re.sub(r&#x27;\s+&#x27;, &#x27; &#x27;, spoken).strip()
+        # Detect mixed content warning
+        warn = False
+        for m in maths:
+            pNode = m  # check parent&#x27;s siblings
+            for sib in list(p):
+                sib_tag = sib.tag.split(&#x27;}&#x27;)[-1] if &#x27;}&#x27; in sib.tag else sib.tag
+                if sib_tag == &#x27;oMath&#x27;: continue
+                for t_el in sib.iter():
+                    if t_el.tag.split(&#x27;}&#x27;)[-1] == &#x27;t&#x27; and t_el.text:
+                        tx = t_el.text.strip()
+                        if re.search(r&#x27;[()]\s*$|^\s*[()]|^[-(]&#x27;, tx): warn = True
+        math_paras.append({&#x27;paraid&#x27;: paraid, &#x27;latex&#x27;: latex, &#x27;spoken&#x27;: spoken, &#x27;warn&#x27;: warn})
+
+    prog(25, f&#x27;Found {len(math_paras)} equations. Rendering images…&#x27;)
+
+    # Apply overrides
+    if spoken_overrides:
+        for idx, txt in spoken_overrides.items():
+            if 0 &lt;= idx &lt; len(math_paras):
+                math_paras[idx][&#x27;spoken&#x27;] = txt
+
+    # Render PNG images
+    images = []
+    for i, mp in enumerate(math_paras):
+        pct = 25 + int(i / len(math_paras) * 50)
+        prog(pct, f&#x27;Rendering equation {i+1} of {len(math_paras)}…&#x27;)
+        png_bytes, w, h = latex_to_png(mp[&#x27;latex&#x27;])
+        images.append({&#x27;bytes&#x27;: png_bytes, &#x27;w&#x27;: w, &#x27;h&#x27;: h})
+
+    prog(78, &#x27;Building document…&#x27;)
+
+    # Add image relationships
+    new_rels = rels_xml
+    for i, img in enumerate(images):
+        if not img[&#x27;bytes&#x27;]: continue
+        rid = f&#x27;rIdMathImg{i+1}&#x27;
+        target = f&#x27;media/mathimg{i+1}.png&#x27;
+        rel = f&#x27;&lt;Relationship Id=&quot;{rid}&quot; Type=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships/image&quot; Target=&quot;{target}&quot;/&gt;&#x27;
+        if rid not in new_rels:
+            new_rels = new_rels.replace(&#x27;&lt;/Relationships&gt;&#x27;, rel + &#x27;&lt;/Relationships&gt;&#x27;)
+
+    # Process paragraphs in reverse order (preserve positions)
+    new_doc = doc_xml
+    items = list(enumerate(math_paras))
+    items.reverse()
+
+    for i, mp in items:
+        paraid = mp[&#x27;paraid&#x27;]
+        if not paraid: continue
+        search = f&#x27;w14:paraId=&quot;{paraid}&quot;&#x27;
+        found = new_doc.find(search)
+        if found &lt; 0: continue
+        p_open = new_doc.rfind(&#x27;&lt;w:p &#x27;, 0, found)
+        if p_open &lt; 0: continue
+        p_close = new_doc.find(&#x27;&lt;/w:p&gt;&#x27;, found) + 6
+        para = new_doc[p_open:p_close]
+
+        # Build replacement
+        img = images[i]
+        rid = f&#x27;rIdMathImg{i+1}&#x27;
+        spoken_text = mp[&#x27;spoken&#x27;]
+
+        img_run = &#x27;&#x27;
+        if img[&#x27;bytes&#x27;]:
+            # Convert px to EMU (150dpi: 1px = 6350 EMU)
+            w_emu = int(img[&#x27;w&#x27;] * 6350)
+            h_emu = int(img[&#x27;h&#x27;] * 6350)
+            # Cap to ~4.5&quot; = 4114800 EMU
+            MAX_W = 4114800
+            if w_emu &gt; MAX_W:
+                scale = MAX_W / w_emu
+                w_emu = MAX_W
+                h_emu = int(h_emu * scale)
+            img_run = f&#x27;&lt;w:r&gt;{_inline_img_xml(rid, w_emu, h_emu, spoken_text)}&lt;/w:r&gt;&#x27;
+
+        spk_run = _spoken_run_xml(spoken_text, color, sz_half, bold, italic)
+        replacement = img_run + spk_run
+
+        # Replace oMath blocks
+        result = para; inserted = False
+        while True:
+            os_pos = result.find(&#x27;&lt;m:oMath&gt;&#x27;)
+            if os_pos &lt; 0: break
+            oe_pos = result.find(&#x27;&lt;/m:oMath&gt;&#x27;, os_pos) + len(&#x27;&lt;/m:oMath&gt;&#x27;)
+            if oe_pos &lt; len(&#x27;&lt;/m:oMath&gt;&#x27;): break
+            if not inserted:
+                result = result[:os_pos] + replacement + result[oe_pos:]
+                inserted = True
+            else:
+                result = result[:os_pos] + result[oe_pos:]
+
+        # Also handle namespace-stripped oMath
+        while &#x27;&lt;oMath&gt;&#x27; in result:
+            os_pos = result.find(&#x27;&lt;oMath&gt;&#x27;)
+            oe_pos = result.find(&#x27;&lt;/oMath&gt;&#x27;, os_pos) + len(&#x27;&lt;/oMath&gt;&#x27;)
+            if not inserted:
+                result = result[:os_pos] + replacement + result[oe_pos:]
+                inserted = True
+            else:
+                result = result[:os_pos] + result[oe_pos:]
+
+        # Normalize line spacing
+        sp_s = result.find(&#x27;&lt;w:spacing &#x27;)
+        sp_e = result.find(&#x27;/&gt;&#x27;, sp_s) if sp_s &gt;= 0 else -1
+        norm = &#x27;&lt;w:spacing w:line=&quot;240&quot; w:lineRule=&quot;auto&quot; w:after=&quot;80&quot;/&gt;&#x27;
+        if sp_s &gt;= 0 and sp_e &gt;= 0:
+            result = result[:sp_s] + norm + result[sp_e+2:]
+        else:
+            pp_end = result.find(&#x27;&lt;/w:pPr&gt;&#x27;)
+            if pp_end &gt;= 0: result = result[:pp_end] + norm + result[pp_end:]
+
+        new_doc = new_doc[:p_open] + result + new_doc[p_close:]
+
+    prog(90, &#x27;Saving…&#x27;)
+
+    # Add PNG content type to [Content_Types].xml if not present
+    ct_xml = all_files.get(&#x27;[Content_Types].xml&#x27;, b&#x27;&#x27;).decode(&#x27;utf-8&#x27;)
+    if &#x27;image/png&#x27; not in ct_xml and any(img[&#x27;bytes&#x27;] for img in images):
+        ct_xml = ct_xml.replace(
+            &#x27;&lt;/Types&gt;&#x27;,
+            &#x27;&lt;Default Extension=&quot;png&quot; ContentType=&quot;image/png&quot;/&gt;&lt;/Types&gt;&#x27;
+        )
+        all_files[&#x27;[Content_Types].xml&#x27;] = ct_xml.encode(&#x27;utf-8&#x27;)
+
+    # Write output zip
+    with zipfile.ZipFile(output_path, &#x27;w&#x27;, zipfile.ZIP_DEFLATED) as zout:
+        for name, data in all_files.items():
+            if name == &#x27;word/document.xml&#x27;: zout.writestr(name, new_doc)
+            elif name == &#x27;word/_rels/document.xml.rels&#x27;: zout.writestr(name, new_rels)
+            else: zout.writestr(name, data if isinstance(data, bytes) else data.encode(&#x27;utf-8&#x27;))
+        for i, img in enumerate(images):
+            if img[&#x27;bytes&#x27;]:
+                zout.writestr(f&#x27;word/media/mathimg{i+1}.png&#x27;, img[&#x27;bytes&#x27;])
+
+    prog(100, f&#x27;Done — {len(math_paras)} equations converted&#x27;)
+    return math_paras
+
+
+# ══════════════════════════════════════════════════════════════════
+# CLI interface (for testing)
+# ══════════════════════════════════════════════════════════════════
+if __name__ == &#x27;__main__&#x27;:
+    import sys
+    if len(sys.argv) &lt; 3:
+        print(&quot;Usage: python math-readaloud-final.py input.docx output.docx&quot;)
+        sys.exit(1)
+    
+    def show_progress(pct, msg):
+        print(f&quot;  [{pct:3d}%] {msg}&quot;)
+    
+    result = convert_docx(sys.argv[1], sys.argv[2], progress_cb=show_progress)
+    print(f&quot;\nConverted {len(result)} equations:&quot;)
+    for i, r in enumerate(result):
+        warn = &#x27; ⚠&#x27; if r[&#x27;warn&#x27;] else &#x27;&#x27;
+        print(f&quot;  F{i+1:2d}{warn}: {r[&#x27;spoken&#x27;][:60]}&quot;)
+</script>
 
 <div class="wrap">
 <header>
   <div class="eye">OARS · High Point University · Accessibility</div>
   <h1>Math <span>Read Aloud</span></h1>
-  <p class="sub">Upload a Word exam. Each equation is converted to an image the student can see, plus spoken text Word reads aloud correctly. No double-reading.</p>
+  <p class="sub">Upload a Word exam. Each equation becomes an image plus spoken text Word reads correctly. Formula image stays visible for the student.</p>
 </header>
+
+<div class="card">
+  <div class="clbl">Anthropic API Key</div>
+  <input type="password" id="apikey" class="apikey" placeholder="sk-ant-api03-...">
+  <p class="api-note">Used only in your browser, never stored or sent anywhere except Anthropic. Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+</div>
 
 <div class="card">
   <div class="clbl">Document</div>
@@ -132,400 +847,163 @@ h1 span{color:var(--gm)}
   </div>
 </div>
 
-<button class="btn-go" id="btnGo" onclick="run()" disabled>⚡ Convert &amp; Review</button>
+<button class="btn-go" id="btnGo" onclick="run()" disabled>⚡ Convert Document</button>
 <div class="prog" id="prog">
   <div class="pb-bg"><div class="pb" id="pb"></div></div>
-  <div class="pl" id="pl">Loading…</div>
+  <div class="pl" id="pl">Starting...</div>
 </div>
-
-<div class="review" id="review">
-  <div class="card">
-    <div class="rh">
-      <span class="rt">Review Spoken Text</span>
-      <span class="rc" id="rc"></span>
-    </div>
-    <div class="rnote">
-      Edit any spoken line that sounds wrong — it turns blue. <strong>⚠ Yellow</strong> = mixed plain-text + equation, verify carefully.
-    </div>
-    <table class="ftable" id="ftable"></table>
-    <div class="ract">
-      <button class="btn-rst" onclick="resetAll()">↺ Reset all</button>
-      <button class="btn-exp" onclick="exportDoc()">⬇ Export .docx</button>
-    </div>
-  </div>
-  <div class="dlrow" id="dlrow">
-    <a class="btn-dl" id="dlbtn" href="#">⬇ Download</a>
-    <span class="dli" id="dli"></span>
-  </div>
+<div class="dlrow" id="dlrow">
+  <a class="btn-dl" id="dlbtn" href="#">⬇ Download Converted Doc</a>
+  <span class="dli" id="dli"></span>
 </div>
 </div>
 
-<!-- MathJax for rendering equations as SVG -->
-<script>window.MathJax={startup:{typeset:false},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/mml-svg.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script>
-'use strict';
 
-// ── State ────────────────────────────────────────────────────────
-var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gOmmlNodes=[];
-var gColor='7A776E',gSize=10,gMjReady=false;
+var gFile=null,gColor='7A776E',gSize=10;
 
-window.addEventListener('load',function(){
-  if(window.MathJax&&MathJax.startup){
-    MathJax.startup.promise.then(function(){gMjReady=true});
-  }
-});
-
-// ── UI helpers ───────────────────────────────────────────────────
 var drop=document.getElementById('drop'),fi=document.getElementById('fi');
 drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('over')});
 drop.addEventListener('dragleave',function(){drop.classList.remove('over')});
 drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0])});
 fi.addEventListener('change',function(){if(fi.files[0])setFile(fi.files[0])});
 
-function setFile(f){if(!f.name.match(/\.docx$/i)){showErr('Please upload a .docx file');return}gFile=f;document.getElementById('fn').textContent=f.name;document.getElementById('fpill').classList.add('show');document.getElementById('btnGo').disabled=false;document.getElementById('err').classList.remove('show');document.getElementById('review').classList.remove('show');document.getElementById('dlrow').classList.remove('show')}
+function setFile(f){
+  if(!f.name.match(/\.docx$/i)){showErr('Please upload a .docx file');return}
+  gFile=f;
+  document.getElementById('fn').textContent=f.name;
+  document.getElementById('fpill').classList.add('show');
+  document.getElementById('btnGo').disabled=false;
+  document.getElementById('err').classList.remove('show');
+  document.getElementById('dlrow').classList.remove('show');
+}
 function clearFile(){gFile=null;fi.value='';document.getElementById('fpill').classList.remove('show');document.getElementById('btnGo').disabled=true}
 function setC(b,c){gColor=c;document.querySelectorAll('.cbtn').forEach(function(x){x.classList.remove('active')});b.classList.add('active')}
 function setS(b,s){gSize=s;document.querySelectorAll('.sbtn').forEach(function(x){x.classList.remove('active')});b.classList.add('active')}
 function showErr(m){var b=document.getElementById('err');b.textContent='⚠ '+m;b.classList.add('show')}
 function setP(p,l){document.getElementById('pb').style.width=p+'%';document.getElementById('pl').textContent=l}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-// ── OMML → Spoken Math Engine ────────────────────────────────────
-var GK={α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
-var SY={'±':'plus or minus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','∈':'is an element of','∉':'is not an element of','∪':'union','∩':'intersection','∅':'the empty set','∀':'for all','∃':'there exists','→':'approaches','∂':'partial','°':'degrees','⊥':'perpendicular to','∥':'parallel to','∠':'angle'};
-var KN={sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',exp:'e to the',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v',dw:'d w'};
-var SKP=/^(fPr|sSupPr|sSubPr|sSubSupPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|sz|color|accPr|groupChrPr|limLowPr|limUppPr|barPr|funcPr|phantPr|sPrePr|type|i|b|strike|vertAlign|noProof)$/;
-
-function xl(s){s=s.trim();if(!s)return'';if(KN[s])return KN[s];var o='';for(var i=0;i<s.length;i++){var c=s[i];if(GK[c])o+=' '+GK[c]+' ';else if(SY[c])o+=' '+SY[c]+' ';else o+=c}return o.trim()}
-function xo(s){s=s.trim();if(!s)return'';var r=s;if(r.indexOf('(')>=0){r=r.replace(/\(([^)]*)\)/g,function(_,x){x=x.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/(\d)([a-zA-Z])/g,'$1 $2');return' the quantity '+x+', end quantity '});r=r.replace(/end quantity\s+the quantity/g,'end quantity, times the quantity')}r=r.replace(/^\s*=\s*-\s*(\d)/,'equals negative $1').replace(/^\s*=\s*(\d)/,'equals $1').replace(/^\s*\+\s*(\d)/,'plus $1').replace(/^\s*-\s*(\d)/,'minus $1').replace(/^\s*\+\s*$/,'plus').replace(/^\s*-\s*$/,'minus').replace(/^\s*-\s+(the quantity)/,'minus $1');r=r.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/([a-zA-Z0-9])=(-?\d)/g,'$1 equals $2').replace(/=0\b/g,'equals 0').replace(/(\d)([a-zA-Z])/g,'$1 $2').replace(/[()]/g,'');return r.replace(/\s+/g,' ').trim()}
-function gr(n){var t=[];n.querySelectorAll('*').forEach(function(el){if(el.localName==='t'&&el.textContent.trim())t.push(el.textContent.trim())});return t.join('')}
-function gc(n,nm){var ch=n.childNodes;for(var i=0;i<ch.length;i++)if(ch[i].localName===nm)return ch[i];return null}
-function pw(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
-function se(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
-function wa(nodes){var r=[];Array.from(nodes).forEach(function(n){wn(n).forEach(function(t){if(t&&t.trim())r.push(t.trim())})});return r}
-function wn(node){
-  if(!node||!node.localName)return[];
-  var tag=node.localName,ch=Array.from(node.childNodes);
-  if(SKP.test(tag))return[];
-  if(/^(oMath|oMathPara|e|fName|box|borderBox|groupChr)$/.test(tag))return wa(ch);
-  if(/^(sup|sub|deg|lim)$/.test(tag)){var r=gr(node);return r?[r]:[]}
-  if(/^(num|den)$/.test(tag))return wa(ch);
-  if(tag==='r'){var tel=gc(node,'t');if(tel&&tel.textContent&&tel.textContent.trim()){var x=xl(tel.textContent.trim());return x?[xo(x)]:[]}return wa(ch)}
-  if(tag==='t'){var s=node.textContent||'';if(s.trim()){var x2=xl(s.trim());return x2?[xo(x2)]:[]}return[]}
-  if(tag==='f'){var fPr=gc(node,'fPr'),st='bar';if(fPr){var ty=Array.from(fPr.childNodes).find(function(c){return c.localName==='type'});if(ty)st=ty.getAttribute('m:val')||'bar'}var nEl=gc(node,'num'),dEl=gc(node,'den'),n=wa(nEl?Array.from(nEl.childNodes):[]).join(' '),d=wa(dEl?Array.from(dEl.childNodes):[]).join(' ');return st==='noBar'?[n+' choose '+d]:[n+' over '+d]}
-  if(tag==='sSup'){var eEl=gc(node,'e'),sEl=gc(node,'sup');return[se(wa(eEl?Array.from(eEl.childNodes):[]).join(' ').trim(),sEl?gr(sEl):'')]}
-  if(tag==='sSub'){var eEl2=gc(node,'e'),sEl2=gc(node,'sub'),b2=wa(eEl2?Array.from(eEl2.childNodes):[]).join(' ').trim(),sr=sEl2?gr(sEl2):'';return b2==='log'||b2==='log of'?['log base '+sr+' of']:[b2+' sub '+sr]}
-  if(tag==='sSubSup'){var eEl3=gc(node,'e'),sEl3=gc(node,'sub'),uEl=gc(node,'sup'),b3=wa(eEl3?Array.from(eEl3.childNodes):[]).join(' ').trim(),s3=sEl3?gr(sEl3):'',u3=uEl?gr(uEl):'';if(/^(sum|the sum)$/i.test(b3))return['the sum from '+s3+' to '+u3];if(/integral/i.test(b3))return['the integral from '+s3+' to '+u3];if(/^(sine|cosine|tangent|secant|cosecant|cotangent)/i.test(b3))return[b3+' to the '+pw(u3)+' of'];return[b3+' sub '+s3+' to the '+pw(u3)]}
-  if(tag==='d'){var dPr=gc(node,'dPr'),oc='(',cc=')';if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc=v2}});var pts=ch.filter(function(c){return c.localName==='e'}),inn=pts.map(function(p){return wa(Array.from(p.childNodes)).join(' ')}).join(', ');if(oc===''&&cc==='')return[inn];if(oc==='|'&&cc==='|')return['the absolute value of '+inn];if(oc==='‖'&&cc==='‖')return['the norm of '+inn];if(oc==='{'&&cc==='}')return['the set '+inn];if(oc==='⌈'&&cc==='⌉')return['the ceiling of '+inn];if(oc==='⌊'&&cc==='⌋')return['the floor of '+inn];return['the quantity '+inn+', end quantity']}
-  if(tag==='func'){var fnEl=gc(node,'fName'),eEl4=gc(node,'e'),fn=wa(fnEl?Array.from(fnEl.childNodes):[]).join(' ').trim(),arg=wa(eEl4?Array.from(eEl4.childNodes):[]).join(' ').trim(),fl=fn.toLowerCase();var FT={sine:'sine of',cosine:'cosine of',tangent:'tangent of',cosecant:'cosecant of',secant:'secant of',cotangent:'cotangent of',arcsine:'arcsine of',arccosine:'arccosine of',arctangent:'arctangent of','hyperbolic sine':'hyperbolic sine of','hyperbolic cosine':'hyperbolic cosine of','hyperbolic tangent':'hyperbolic tangent of','the natural log of':'the natural log of','log of':'log of',log:'log of','the limit':'the limit as','the maximum of':'the maximum of','the minimum of':'the minimum of'};for(var k in FT){if(fl===k||fl.startsWith(k))return[FT[k]+' '+arg]}return[/^[a-zA-Z]$/.test(fl)?fl+' of '+arg:fn+' of '+arg]}
-  if(tag==='rad'){var rPr=gc(node,'radPr'),degEl=gc(node,'deg'),eEl5=gc(node,'e'),inn2=wa(eEl5?Array.from(eEl5.childNodes):[]).join(' '),hide=false;if(rPr){var dh=Array.from(rPr.childNodes).find(function(c){return c.localName==='degHide'});if(dh){var v3=dh.getAttribute('m:val');hide=!v3||v3==='1'||v3==='true'||v3==='on'}}if(hide||!degEl)return['the square root of '+inn2];var dt=gr(degEl).trim();if(!dt||dt==='2')return['the square root of '+inn2];if(dt==='3')return['the cube root of '+inn2];if(dt==='4')return['the fourth root of '+inn2];return['the '+dt+'th root of '+inn2]}
-  if(tag==='nary'){var nPr=gc(node,'naryPr'),sEl4=gc(node,'sub'),uEl2=gc(node,'sup'),eEl6=gc(node,'e'),chr='∑',sh=false,sph=false;if(nPr)Array.from(nPr.childNodes).forEach(function(nc){var nct=nc.localName,v4=nc.getAttribute('m:val')||'';if(nct==='chr'&&v4)chr=v4;if(nct==='subHide')sh=v4==='1'||v4==='on';if(nct==='supHide')sph=v4==='1'||v4==='on'});var NL={'∑':'the sum','∏':'the product','∫':'the integral','∬':'the double integral','∭':'the triple integral','∮':'the line integral'},lbl=NL[chr]||'the operation',fr=(!sh&&sEl4)?gr(sEl4):'',to=(!sph&&uEl2)?gr(uEl2):'',ex=eEl6?wa(Array.from(eEl6.childNodes)).join(' '):'';var out=lbl;if(fr)out+=' from '+fr;if(to)out+=' to '+to;if(ex)out+=' of '+ex;return[out]}
-  if(tag==='limLow'){var eEl7=gc(node,'e'),lEl=gc(node,'lim'),expr=wa(eEl7?Array.from(eEl7.childNodes):[]).join(' '),limt=lEl?gr(lEl):'';return[/^(the\s+)?limit$/i.test(expr.trim())?'the limit as '+limt:expr+' as '+limt]}
-  if(tag==='limUpp'){var eEl8=gc(node,'e'),lEl2=gc(node,'lim');return[wa(eEl8?Array.from(eEl8.childNodes):[]).join(' ')+' to '+(lEl2?gr(lEl2):'')]}
-  if(tag==='bar'){var eEl9=gc(node,'e');return[(eEl9?wa(Array.from(eEl9.childNodes)).join(' '):'')+' bar']}
-  if(tag==='acc'){var eEl10=gc(node,'e');return[(eEl10?wa(Array.from(eEl10.childNodes)).join(' '):'')+' hat']}
-  if(tag==='phant')return[];
-  return wa(ch);
-}
-function pp(tokens){
-  var r=[],i=0;
-  while(i<tokens.length){
-    var t=tokens[i];
-    if(/^[a-zA-Z]$/.test(t)&&i+1<tokens.length){var nx=tokens[i+1];if(nx.startsWith('the quantity ')&&nx.includes('end quantity')){r.push(t+' of '+nx.replace(/^the quantity\s*/,'').replace(/,?\s*end quantity.*$/,'').trim());i+=2;continue}}
-    if(t.endsWith('end quantity')&&i+1<tokens.length){var nx2=tokens[i+1];if(nx2.startsWith('the quantity')||nx2.startsWith('times the quantity')){r.push(t+', times');i++;continue}}
-    r.push(t);i++;
-  }
-  return rs(r);
-}
-function ic(tok){return/^(x|y|z|[a-zA-Z])\s+(squared|cubed|to the)/.test(tok)||/^(plus|minus)\s+[\da-zA-Z]/.test(tok)||/^\d+\s+[a-zA-Z]/.test(tok)||/^[a-zA-Z]\s+(squared|cubed|to the|plus|minus)/.test(tok)}
-function rs(tokens){var res=tokens.slice(),changed=true;while(changed){changed=false;for(var i=0;i<res.length;i++){var t=res[i];if(t.endsWith('end quantity')&&i+1<res.length){var nx=res[i+1],mA=nx.match(/^(-\s*|minus\s+|plus\s+|\+\s*)(\d.*)/);if(mA&&i+2<res.length){var op=(mA[1].trim()==='-'||mA[1].trim()==='minus')?'minus':'plus',parts=[mA[2].trim()],j=i+2;while(j<res.length&&ic(res[j])){parts.push(res[j]);j++}if(parts.length>1){res=res.slice(0,i).concat([t+', '+op+' the quantity '+parts.join(' ')+', end quantity']).concat(res.slice(j));changed=true;break}}}var mB=t.match(/^(.*end quantity),?\s+(\d+)$/);if(mB&&i+1<res.length){var bef=mB[1].replace(/,\s*$/,'').trim(),parts2=[mB[2]],j2=i+1;while(j2<res.length&&ic(res[j2])){parts2.push(res[j2]);j2++}if(parts2.length>1){res=res.slice(0,i).concat([bef+', times the quantity '+parts2.join(' ')+', end quantity']).concat(res.slice(j2));changed=true;break}}}}return res}
-function o2s(omath){var t=wa(Array.from(omath.childNodes));t=pp(t);var s=t.join(' ');s=s.replace(/\s+/g,' ').replace(/,\s*,/g,',').replace(/\bof of\b/g,'of').replace(/end quantity,?\s+end quantity/g,'end quantity');return s.trim()}
-
-// ── OMML → MathML (for rendering) ───────────────────────────────
-function o2mml(node){
-  var tag=node.localName||'';
-  var ch=Array.from(node.childNodes).filter(function(c){return c.localName});
-  function kids(ns){return ns.map(o2mml).join('')}
-  function w(t,c,a){return'<'+t+(a?' '+a:'')+'>'+c+'</'+t+'>'}
-  if(!tag||tag==='oMathPara')return w('math',w('mrow',kids(ch)),'xmlns="http://www.w3.org/1998/Math/MathML" display="block"');
-  if(tag==='oMath')return w('mrow',kids(ch));
-  if(tag==='r'){var tel=gc(node,'t');if(tel&&tel.textContent.trim()){var txt=tel.textContent.trim();if(/^[a-zA-Z]$/.test(txt))return w('mi',txt);if(/^[0-9.]+$/.test(txt))return w('mn',txt);if(/^[+\-=<>±×÷]$/.test(txt))return w('mo',esc(txt));return w('mi',esc(txt))}return''}
-  if(tag==='t'){var s2=node.textContent||'';if(!s2.trim())return'';if(/^[a-zA-Z]$/.test(s2.trim()))return w('mi',s2.trim());if(/^[0-9.]+$/.test(s2.trim()))return w('mn',s2.trim());return w('mi',esc(s2.trim()))}
-  if(tag==='f'){var nEl=gc(node,'num'),dEl=gc(node,'den'),fPr=gc(node,'fPr'),style='bar';if(fPr){var ty=Array.from(fPr.childNodes).find(function(c){return c.localName==='type'});if(ty)style=ty.getAttribute('m:val')||'bar'}var n=w('mrow',kids(nEl?Array.from(nEl.childNodes).filter(function(c){return c.localName}):[])),d=w('mrow',kids(dEl?Array.from(dEl.childNodes).filter(function(c){return c.localName}):[]));return style==='noBar'?w('mrow',w('mo','(')+n+w('mo',')')+w('mo','choose')+w('mo','(')+d+w('mo',')')):w('mfrac',n+d)}
-  if(tag==='sSup'){var eEl=gc(node,'e'),sEl=gc(node,'sup'),kch=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('msup',w('mrow',kids(kch(eEl)))+w('mrow',kids(kch(sEl))))}
-  if(tag==='sSub'){var eEl2=gc(node,'e'),sEl2=gc(node,'sub'),kch2=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('msub',w('mrow',kids(kch2(eEl2)))+w('mrow',kids(kch2(sEl2))))}
-  if(tag==='sSubSup'){var eEl3=gc(node,'e'),sEl3=gc(node,'sub'),pEl=gc(node,'sup'),kch3=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('msubsup',w('mrow',kids(kch3(eEl3)))+w('mrow',kids(kch3(sEl3)))+w('mrow',kids(kch3(pEl))))}
-  if(tag==='d'){var dPr=gc(node,'dPr'),oc='(',cc=')';if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc=v2}});var pts=ch.filter(function(c){return c.localName==='e'}),inn=pts.map(function(p){return w('mrow',kids(Array.from(p.childNodes).filter(function(c){return c.localName})))}).join(oc!='('?'':w('mo',','));return w('mrow',w('mo',esc(oc||'('))+inn+w('mo',esc(cc||'))')))}
-  if(tag==='func'){var fnEl=gc(node,'fName'),eEl4=gc(node,'e'),kch4=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('mrow',kids(kch4(fnEl))+w('mo','(')+kids(kch4(eEl4))+w('mo',')'))}
-  if(tag==='rad'){var rPr=gc(node,'radPr'),degEl=gc(node,'deg'),eEl5=gc(node,'e'),hide=false,kch5=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};if(rPr){var dh=Array.from(rPr.childNodes).find(function(c){return c.localName==='degHide'});if(dh){var v5=dh.getAttribute('m:val');hide=!v5||v5==='1'}}if(hide||!degEl)return w('msqrt',kids(kch5(eEl5)));return w('mroot',kids(kch5(eEl5))+kids(kch5(degEl)))}
-  if(tag==='nary'){var nPr=gc(node,'naryPr'),sEl5=gc(node,'sub'),uEl=gc(node,'sup'),eEl6=gc(node,'e'),chr='∑',sh=false,sph=false,kch6=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};if(nPr)Array.from(nPr.childNodes).forEach(function(nc){var nct=nc.localName,v6=nc.getAttribute('m:val')||'';if(nct==='chr'&&v6)chr=v6;if(nct==='subHide')sh=v6==='1';if(nct==='supHide')sph=v6==='1'});var op=w('mo',chr),body=w('mrow',kids(kch6(eEl6)));if(!sh&&!sph&&sEl5&&uEl)return w('mrow',w('msubsup',op+kids(kch6(sEl5))+kids(kch6(uEl)))+body);if(!sh&&sEl5)return w('mrow',w('msub',op+kids(kch6(sEl5)))+body);return w('mrow',op+body)}
-  if(tag==='limLow'){var eEl7=gc(node,'e'),lEl=gc(node,'lim'),kch7=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('munder',w('mrow',kids(kch7(eEl7)))+w('mrow',kids(kch7(lEl))))}
-  if(tag==='bar'){var eEl8=gc(node,'e'),kch8=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('mover',w('mrow',kids(kch8(eEl8)))+w('mo','‾'))}
-  if(tag==='acc'){var eEl9=gc(node,'e'),kch9=function(el){return el?Array.from(el.childNodes).filter(function(c){return c.localName}):[]};return w('mover',w('mrow',kids(kch9(eEl9)))+w('mo','̂'))}
-  if(tag==='e'||tag==='fName')return kids(ch);
-  if(/^(fPr|sSupPr|sSubPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|pPr|limLowPr|limUppPr|barPr|funcPr|accPr)$/.test(tag))return'';
-  return kids(ch);
-}
-
-// ── MathJax render → PNG ─────────────────────────────────────────
-async function renderToPng(omathNode){
-  if(!gMjReady)return null;
-  try{
-    var mmlStr=o2mml(omathNode);
-    var area=document.getElementById('mjax');
-    area.innerHTML=mmlStr;
-    await MathJax.typesetPromise([area]);
-    var svg=area.querySelector('svg');
-    if(!svg)return null;
-
-    // Parse dimensions — MathJax uses ex/em units
-    function parseDim(s,fallback){
-      if(!s)return fallback;
-      s=String(s);
-      if(s.endsWith('ex'))return parseFloat(s)*8;
-      if(s.endsWith('em'))return parseFloat(s)*14;
-      return parseFloat(s)||fallback;
-    }
-    var baseW=parseDim(svg.getAttribute('width'),200);
-    var baseH=parseDim(svg.getAttribute('height'),50);
-    var scale=2.5; // high-res
-    var W=Math.round(baseW*scale);
-    var H=Math.round(baseH*scale);
-
-    var clone=svg.cloneNode(true);
-    clone.setAttribute('width',W);
-    clone.setAttribute('height',H);
-    // Add white background
-    clone.insertAdjacentHTML('afterbegin','<rect width="100%" height="100%" fill="white"/>');
-
-    var svgStr=new XMLSerializer().serializeToString(clone);
-    var blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-    var url=URL.createObjectURL(blob);
-
-    return new Promise(function(resolve){
-      var img=new Image();
-      img.onload=function(){
-        var canvas=document.createElement('canvas');
-        canvas.width=W; canvas.height=H;
-        var ctx=canvas.getContext('2d');
-        ctx.fillStyle='white';
-        ctx.fillRect(0,0,W,H);
-        ctx.drawImage(img,0,0);
-        URL.revokeObjectURL(url);
-        var pngB64=canvas.toDataURL('image/png').split(',')[1];
-        resolve({b64:pngB64,w:W,h:H});
-      };
-      img.onerror=function(){URL.revokeObjectURL(url);resolve(null)};
-      img.src=url;
-    });
-  }catch(e){
-    console.warn('MathJax render error:',e);
-    return null;
-  }
-}
-
-// ── DOCX image XML helpers ────────────────────────────────────────
-function imgXml(rId,wEmu,hEmu,alt){
-  var id=Math.abs(hashStr(rId))%90000+10000;
-  var a=alt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  return'<w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+wEmu+'" cy="'+hEmu+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="'+id+'" name="MathImg'+id+'" descr="'+a+'"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+id+'" name="MathImg'+id+'"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rId+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr bwMode="auto"><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+wEmu+'" cy="'+hEmu+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
-}
-function hashStr(s){var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h}
-function spkRun(text,color,sz,bold,italic){
-  var b=bold?'<w:b/>':'',it=italic?'<w:i/>':'';
-  var rp=b+it+'<w:color w:val="'+color+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
-  var tx=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  return'<w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve"> '+tx+'</w:t></w:r>';
-}
-
-// ── Main extraction ───────────────────────────────────────────────
 async function run(){
-  if(!gFile)return;
+  var apiKey=document.getElementById('apikey').value.trim();
+  if(!apiKey){showErr('Please enter your Anthropic API key');return}
+  if(!gFile){showErr('Please upload a .docx file');return}
+
   document.getElementById('btnGo').disabled=true;
   document.getElementById('prog').classList.add('show');
-  document.getElementById('review').classList.remove('show');
   document.getElementById('dlrow').classList.remove('show');
   document.getElementById('err').classList.remove('show');
-  try{
-    setP(10,'Reading file…');
-    var buf=await gFile.arrayBuffer();
-    gZip=await JSZip.loadAsync(buf);
-    setP(25,'Parsing equations…');
-    gDocXml=await gZip.file('word/document.xml').async('string');
-    var parser=new DOMParser();
-    var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
-    var allParas=Array.from(xmlDoc.querySelectorAll('p'));
-    gParas=[];gSpoken=[];gOmmlNodes=[];
 
-    allParas.forEach(function(p,idx){
-      var maths=Array.from(p.querySelectorAll('oMath'));
-      if(!maths.length)return;
-      var parts=maths.map(function(m){return o2s(m)}).filter(Boolean);
-      if(!parts.length)return;
-      var spoken=parts.join(', ').replace(/\s+/g,' ').trim();
-      var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
-      var warn=false;
-      maths.forEach(function(m){
-        Array.from(p.childNodes).forEach(function(sib){
-          if(sib===m||sib.nodeName==='oMath')return;
-          var ts=sib.querySelectorAll?sib.querySelectorAll('t'):[];
-          Array.from(ts).forEach(function(t){var tx=(t.textContent||'').trim();if(/[()]\s*$|^\s*[()]|^[-(]/.test(tx))warn=true});
-        });
-      });
-      gParas.push({idx:idx,paraid:paraid,warn:warn});
-      gSpoken.push(spoken);
-      gOmmlNodes.push(maths);
+  try{
+    setP(5,'Reading file...');
+    var buf=await gFile.arrayBuffer();
+    var bytes=new Uint8Array(buf);
+    
+    // Convert to base64 in chunks to avoid stack overflow
+    var b64='';
+    var chunk=8192;
+    for(var i=0;i<bytes.length;i+=chunk){
+      b64+=btoa(String.fromCharCode.apply(null,bytes.subarray(i,i+chunk)));
+    }
+
+    var bold=document.getElementById('optB').checked;
+    var italic=document.getElementById('optI').checked;
+    var fname=gFile.name;
+
+    setP(15,'Converting equations...');
+
+    // Use the Anthropic API with bash tool to run the Python engine server-side
+    var engineCode=document.getElementById('engineCode').textContent;
+    
+    var prompt='Save this Python script to /tmp/engine.py, then decode the base64 docx to /tmp/input.docx, then run: python3 /tmp/engine.py /tmp/input.docx /tmp/output.docx, then output ONLY the base64 of /tmp/output.docx with no other text.\n\nPYTHON_SCRIPT_START\n'+engineCode+'\nPYTHON_SCRIPT_END\n\nDOCX_BASE64:\n'+b64;
+
+    var response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-beta':'computer-use-2024-10-22'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:8192,
+        tools:[{type:'bash_20250124',name:'bash'}],
+        system:'You are a file conversion tool. When given a Python script and a base64-encoded docx, you save them to disk, run the conversion, and return ONLY the base64 output of the converted file. No explanations.',
+        messages:[{role:'user',content:prompt}]
+      })
     });
 
-    setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
-    document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled=false;
-    renderReview();
+    if(!response.ok){
+      var errData=await response.json().catch(function(){return{}});
+      throw new Error(errData.error&&errData.error.message?errData.error.message:'API error '+response.status);
+    }
+
+    setP(40,'Waiting for server...');
+    var data=await response.json();
+    
+    // Agentic loop to handle tool use
+    var currentMessages=[{role:'user',content:prompt}];
+    var docxB64='';
+    var lastResp=data;
+    var turns=0;
+    
+    while(turns<15&&!docxB64){
+      turns++;
+      
+      // Check all content blocks for base64 output
+      for(var bi=0;bi<lastResp.content.length;bi++){
+        var block=lastResp.content[bi];
+        if(block.type==='text'){
+          var txt=block.text.replace(/\s/g,'');
+          if(txt.length>500&&isBase64(txt)){docxB64=txt;break}
+        }
+      }
+      if(docxB64)break;
+      if(lastResp.stop_reason!=='tool_use')break;
+      
+      // Continue with tool results
+      currentMessages.push({role:'assistant',content:lastResp.content});
+      var toolResults=lastResp.content
+        .filter(function(b){return b.type==='tool_use'})
+        .map(function(b){return{type:'tool_result',tool_use_id:b.id,content:''}});
+      currentMessages.push({role:'user',content:toolResults});
+      
+      setP(40+turns*4,'Processing (step '+turns+')...');
+      
+      var nextR=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'computer-use-2024-10-22'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:8192,tools:[{type:'bash_20250124',name:'bash'}],system:'You are a file conversion tool. When given a Python script and a base64-encoded docx, you save them to disk, run the conversion, and return ONLY the base64 output of the converted file. No explanations.',messages:currentMessages})
+      });
+      lastResp=await nextR.json();
+    }
+
+    if(!docxB64)throw new Error('Conversion failed — server did not return converted file');
+
+    setP(95,'Preparing download...');
+    var docBytes=Uint8Array.from(atob(docxB64),function(c){return c.charCodeAt(0)});
+    var blob=new Blob([docBytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    var url=URL.createObjectURL(blob);
+    var outName=fname.replace(/\.docx$/i,'')+'_ReadAloud.docx';
+    document.getElementById('dlbtn').href=url;
+    document.getElementById('dlbtn').download=outName;
+    document.getElementById('dli').textContent='Converted → '+outName;
+    document.getElementById('dlrow').classList.add('show');
+    document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
+    setP(100,'Done!');
+
   }catch(e){
-    document.getElementById('prog').classList.remove('show');
+    showErr(e.message||'Conversion failed');
+    console.error(e);
+  }finally{
     document.getElementById('btnGo').disabled=false;
-    showErr('Error: '+e.message);console.error(e);
   }
 }
 
-function renderReview(){
-  var wc=gParas.filter(function(p){return p.warn}).length;
-  document.getElementById('rc').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+(wc?' \u2014 '+wc+' flagged':'');
-  var rows='';
-  gParas.forEach(function(mp,i){
-    var w=mp.warn;
-    rows+='<tr'+(w?' class="warn-row"':'')+'>'
-      +'<td class="num">#'+(i+1)+'</td>'
-      +'<td>'
-      +(w?'<div class="wbadge">\u26a0 verify</div>':'')
-      +'<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea>'
-      +'</td></tr>';
-  });
-  document.getElementById('ftable').innerHTML=rows;
-  gParas.forEach(function(_,i){
-    var ta=document.getElementById('fst'+i);
-    if(!ta)return;
-    ta.addEventListener('input',function(){ta.classList.toggle('ed',ta.value.trim()!==gSpoken[i])});
-  });
-  document.getElementById('review').classList.add('show');
-  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})},100);
+function isBase64(s){
+  return s.length>0&&/^[A-Za-z0-9+/]+=*$/.test(s);
 }
-function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(ta){ta.value=gSpoken[i];ta.classList.remove('ed')}})}
 
-// ── Export ────────────────────────────────────────────────────────
-async function exportDoc(){
-  var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
-  var bold=document.getElementById('optB').checked;
-  var italic=document.getElementById('optI').checked;
-  var sz=gSize*2;
-
-  document.getElementById('prog').classList.add('show');
-  setP(5,'Rendering equation images…');
-
-  // Render all equations as PNG
-  var images=[];
-  for(var i=0;i<gOmmlNodes.length;i++){
-    setP(5+Math.round(i/gOmmlNodes.length*65),'Rendering equation '+(i+1)+' of '+gOmmlNodes.length+'…');
-    var result=null;
-    for(var j=0;j<gOmmlNodes[i].length;j++){
-      result=await renderToPng(gOmmlNodes[i][j]);
-      if(result)break;
-    }
-    images.push(result);
-    await new Promise(function(r){setTimeout(r,20)});
-  }
-
-  setP(72,'Building document…');
-
-  // Add image relationships
-  var relsPath='word/_rels/document.xml.rels';
-  var relsXml=await gZip.file(relsPath).async('string');
-  var newRels=relsXml;
-  for(var k=0;k<images.length;k++){
-    if(!images[k])continue;
-    var rid='rIdMath'+(k+1);
-    var rel='<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'.png"/>';
-    if(newRels.indexOf(rid)<0)newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
-  }
-
-  // Process paragraphs
-  var newXml=gDocXml;
-  var items=gParas.map(function(mp,i){return{paraid:mp.paraid,text:texts[i],img:images[i],rid:'rIdMath'+(i+1)}}).filter(function(x){return x.paraid}).reverse();
-
-  items.forEach(function(item){
-    var search='w14:paraId="'+item.paraid+'"';
-    var found=newXml.indexOf(search);
-    if(found<0)return;
-    var pOpen=newXml.lastIndexOf('<w:p ',found);
-    if(pOpen<0)return;
-    var pClose=newXml.indexOf('</w:p>',found)+6;
-    var para=newXml.substring(pOpen,pClose);
-
-    // Build replacement: image run + spoken run
-    var imgRun='';
-    if(item.img){
-      // 96dpi: 1px = 9525 EMU; MathJax renders at ~1 unit = 1px effective
-      var wEmu=Math.round(item.img.w*9525/2.5); // account for 2.5x scale factor
-      var hEmu=Math.round(item.img.h*9525/2.5);
-      var MAX=4114800; // ~4.5 inches
-      if(wEmu>MAX){var sc=MAX/wEmu;wEmu=MAX;hEmu=Math.round(hEmu*sc)}
-      imgRun='<w:r>'+imgXml(item.rid,wEmu,hEmu,item.text)+'</w:r>';
-    }
-    var replacement=imgRun+spkRun(item.text,gColor,sz,bold,italic);
-
-    // Replace first oMath with replacement, remove rest
-    var result=para,inserted=false,os,oe;
-    while((os=result.indexOf('<m:oMath>'))>=0){
-      oe=result.indexOf('</m:oMath>',os)+'</m:oMath>'.length;
-      if(!inserted){result=result.slice(0,os)+replacement+result.slice(oe);inserted=true}
-      else{result=result.slice(0,os)+result.slice(oe)}
-    }
-    // Handle no-namespace oMath
-    while((os=result.indexOf('<oMath>'))>=0){
-      oe=result.indexOf('</oMath>',os)+'</oMath>'.length;
-      if(!inserted){result=result.slice(0,os)+replacement+result.slice(oe);inserted=true}
-      else{result=result.slice(0,os)+result.slice(oe)}
-    }
-
-    // Normalize line spacing
-    var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1;
-    var norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
-    if(spS>=0&&spE>=0)result=result.slice(0,spS)+norm+result.slice(spE+2);
-    else{var pp2=result.indexOf('</w:pPr>');if(pp2>=0)result=result.slice(0,pp2)+norm+result.slice(pp2)}
-
-    newXml=newXml.slice(0,pOpen)+result+newXml.slice(pClose);
-  });
-
-  setP(88,'Saving…');
-
-  // Write files to zip
-  gZip.file('word/document.xml',newXml);
-  gZip.file(relsPath,newRels);
-  for(var m=0;m<images.length;m++){
-    if(!images[m])continue;
-    var pngBytes=Uint8Array.from(atob(images[m].b64),function(c){return c.charCodeAt(0)});
-    gZip.file('word/media/mimg'+(m+1)+'.png',pngBytes);
-  }
-
-  var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
-
-  // Restore zip
-  gZip.file('word/document.xml',gDocXml);
-  gZip.file(relsPath,relsXml);
-
-  setP(100,'Done!');
-  setTimeout(function(){document.getElementById('prog').classList.remove('show')},1500);
-
-  var url=URL.createObjectURL(blob);
-  var name=gFile.name.replace(/\.docx$/i,'')+'_ReadAloud.docx';
-  document.getElementById('dlbtn').href=url;
-  document.getElementById('dlbtn').download=name;
-  document.getElementById('dli').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+' converted \u2192 '+name;
-  document.getElementById('dlrow').classList.add('show');
-  document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
-}
 </script>
 </body>
 </html>
