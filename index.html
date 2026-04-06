@@ -351,17 +351,39 @@ async function run(){
     var allParas=Array.from(xmlDoc.querySelectorAll('p'));
     gParas=[];gSpoken=[];gUnicode=[];gOmml=[];
     allParas.forEach(function(p,idx){
+      // Find all oMath nodes (including inside oMathPara)
       var maths=Array.from(p.querySelectorAll('oMath'));
       if(!maths.length)return;
-      var spoken=maths.map(function(m){return o2s(m)}).filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
-      var unicode=maths.map(function(m){return o2u(m)}).filter(Boolean).join('  ');
-      if(!spoken)return;
+
       var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
-      var warn=false;
-      maths.forEach(function(m){Array.from(p.childNodes).forEach(function(sib){if(sib===m||sib.nodeName==='oMath')return;var ts=sib.querySelectorAll?sib.querySelectorAll('t'):[];Array.from(ts).forEach(function(t){var tx=(t.textContent||'').trim();if(/[()]\s*$|^\s*[()]|^[-(]/.test(tx))warn=true})})});
-      gParas.push({idx:idx,paraid:paraid,warn:warn});
+      if(!paraid)return;
+
+      // Get plain text in the paragraph (outside equations)
+      var plainText='';
+      Array.from(p.childNodes).forEach(function(child){
+        var tag=child.nodeName||'';
+        if(tag==='oMath'||tag==='m:oMath'||tag==='oMathPara'||tag==='m:oMathPara')return;
+        var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
+        Array.from(ts).forEach(function(t){if(t.textContent)plainText+=t.textContent});
+      });
+
+      // Detect answer choices — if paragraph has a./b./c./d. it's a question with answers
+      var hasAnswers=/\ba\.\s|\bb\.\s|\bc\.\s|\bd\.\s/.test(plainText);
+      // If many equations (>3) it's likely answer choices or formula sheet
+      var manyEqs=maths.length>3;
+      // Should we add spoken text?
+      var addSpoken=!hasAnswers&&!manyEqs;
+
+      // Build spoken text from ALL equations (for review panel display)
+      // but only INSERT into doc if addSpoken
+      var spoken=maths.map(function(m){return o2s(m)}).filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
+      // Build per-equation unicode strings
+      var unicodes=maths.map(function(m){return o2u(m)||'[formula]'});
+
+      var warn=hasAnswers||manyEqs;
+      gParas.push({idx:idx,paraid:paraid,warn:warn,addSpoken:addSpoken,mathCount:maths.length});
       gSpoken.push(spoken);
-      gUnicode.push(unicode);
+      gUnicode.push(unicodes);
       gOmml.push(maths);
     });
     setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
@@ -394,29 +416,33 @@ async function exportDoc(){
   setP(5,'Rendering formula images…');
 
   // Render each formula as PNG using Canvas (zero dependencies, always works)
+  // gUnicode[i] is now an array of unicode strings, one per oMath in paragraph
   var images=[];
   for(var i=0;i<gUnicode.length;i++){
     setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'…');
-    var img=renderFormulaPng(gUnicode[i]);
-    images.push(img);
+    // Render each oMath separately, store as array
+    var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'[formula]')});
+    images.push(paraImgs);
     await new Promise(function(r){setTimeout(r,5)});
   }
 
   setP(68,'Building document…');
 
-  // Update relationships - register main rId + sub-equation rIds
+  // Update relationships - register rIds for all equations per paragraph
   var relsPath='word/_rels/document.xml.rels';
   var relsXml=await gZip.file(relsPath).async('string');
   var newRels=relsXml;
   for(var k=0;k<images.length;k++){
-    var rid='rIdMath'+(k+1);
-    var rel='<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'.png"/>';
-    if(newRels.indexOf(rid)<0)newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
-    // Register up to 5 sub-equation rIds for mixed paragraphs
-    for(var s=1;s<=5;s++){
-      var subRid=rid+'s'+s;
-      var subRel='<Relationship Id="'+subRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'.png"/>';
-      if(newRels.indexOf(subRid)<0)newRels=newRels.replace('</Relationships>',subRel+'</Relationships>');
+    var baseRid='rIdMath'+(k+1);
+    // Register main rId pointing to first image in paragraph
+    var rel='<Relationship Id="'+baseRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'_0.png"/>';
+    if(newRels.indexOf(baseRid)<0)newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
+    // Register per-equation rIds
+    for(var eq=0;eq<images[k].length;eq++){
+      var eqRid=eq===0?baseRid:baseRid+'x'+eq;
+      var eqTarget='media/mimg'+(k+1)+'_'+eq+'.png';
+      var eqRel='<Relationship Id="'+eqRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+eqTarget+'"/>';
+      if(newRels.indexOf(eqRid)<0)newRels=newRels.replace('</Relationships>',eqRel+'</Relationships>');
     }
   }
 
@@ -426,7 +452,13 @@ async function exportDoc(){
 
   // Process paragraphs in reverse
   var newXml=gDocXml;
-  var items=gParas.map(function(mp,i){return{paraid:mp.paraid,text:texts[i],img:images[i],rid:'rIdMath'+(i+1)}}).filter(function(x){return x.paraid}).reverse();
+  var items=gParas.map(function(mp,i){return{
+    paraid:mp.paraid,
+    text:texts[i],
+    imgs:images[i],
+    rid:'rIdMath'+(i+1),
+    addSpoken:mp.addSpoken
+  }}).filter(function(x){return x.paraid}).reverse();
   items.forEach(function(item){
     var search='w14:paraId="'+item.paraid+'"';
     var found=newXml.indexOf(search);if(found<0)return;
@@ -434,27 +466,46 @@ async function exportDoc(){
     var pClose=newXml.indexOf('</w:p>',found)+6;
     var para=newXml.substring(pOpen,pClose);
     var result=para;
+    var paraImgs=item.imgs; // array of images, one per oMath
 
-    // Replace EACH oMath with its image individually (preserves surrounding text)
-    // Use a counter to assign unique rIds per equation in this paragraph
-    var eqCount=0;
-    var tags=[['<m:oMath>','</m:oMath>'],['<oMath>','</oMath>']];
-    tags.forEach(function(pair){
-      var os,oe;
-      while((os=result.indexOf(pair[0]))>=0){
-        oe=result.indexOf(pair[1],os)+pair[1].length;
-        if(oe<pair[1].length)break;
-        // Use the paragraph rid for first equation, sub-ids for extras
-        var thisRid=eqCount===0?item.rid:item.rid+'s'+eqCount;
-        var imgR='<w:r>'+imgXml(thisRid,item.img.wEmu,item.img.hEmu,item.text)+'</w:r>';
-        result=result.slice(0,os)+imgR+result.slice(oe);
-        eqCount++;
+    // Replace EACH oMath/oMathPara with its own image, preserving all surrounding text
+    var eqIdx=0;
+    var oMathTags=[
+      ['<m:oMathPara>','</m:oMathPara>'],
+      ['<oMathPara>','</oMathPara>'],
+      ['<m:oMath>','</m:oMath>'],
+      ['<oMath>','</oMath>']
+    ];
+
+    // Process all math tags in document order
+    var continueLoop=true;
+    while(continueLoop){
+      continueLoop=false;
+      // Find the earliest math tag
+      var earliest=-1,earliestEnd=-1,earliestClose='';
+      oMathTags.forEach(function(pair){
+        var os=result.indexOf(pair[0]);
+        if(os>=0&&(earliest<0||os<earliest)){
+          earliest=os;
+          earliestClose=pair[1];
+          earliestEnd=result.indexOf(pair[1],os)+pair[1].length;
+        }
+      });
+      if(earliest>=0&&earliestEnd>0){
+        var img=paraImgs[Math.min(eqIdx,paraImgs.length-1)];
+        var thisRid=item.rid+(eqIdx===0?'':'x'+eqIdx);
+        var imgR='<w:r>'+imgXml(thisRid,img.wEmu,img.hEmu,item.text)+'</w:r>';
+        result=result.slice(0,earliest)+imgR+result.slice(earliestEnd);
+        eqIdx++;
+        continueLoop=true;
       }
-    });
+    }
 
-    // Add spoken text ONCE at the end of the paragraph (after all equations)
-    var closeTag=result.lastIndexOf('</w:p>');
-    result=result.slice(0,closeTag)+spkRun(item.text,gColor,sz,bold,italic)+result.slice(closeTag);
+    // Add spoken text at end ONLY if this paragraph warrants it
+    if(item.addSpoken){
+      var closeTag=result.lastIndexOf('</w:p>');
+      result=result.slice(0,closeTag)+spkRun(item.text,gColor,sz,bold,italic)+result.slice(closeTag);
+    }
 
     // Normalize line spacing
     var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1,norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
@@ -468,8 +519,10 @@ async function exportDoc(){
   gZip.file(relsPath,newRels);
   gZip.file('[Content_Types].xml',newCt);
   for(var m=0;m<images.length;m++){
-    var pngBytes=Uint8Array.from(atob(images[m].b64),function(c){return c.charCodeAt(0)});
-    gZip.file('word/media/mimg'+(m+1)+'.png',pngBytes);
+    for(var eq=0;eq<images[m].length;eq++){
+      var pngBytes=Uint8Array.from(atob(images[m][eq].b64),function(c){return c.charCodeAt(0)});
+      gZip.file('word/media/mimg'+(m+1)+'_'+eq+'.png',pngBytes);
+    }
   }
   var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
   gZip.file('word/document.xml',gDocXml);gZip.file(relsPath,relsXml);gZip.file('[Content_Types].xml',ctXml);
