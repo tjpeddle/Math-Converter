@@ -156,7 +156,7 @@ h1 span{color:var(--gm)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 'use strict';
-var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gUnicode=[],gOmml=[],gColor='7A776E',gSize=10;
+var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gSpokenPerEq=[],gUnicode=[],gOmml=[],gColor='7A776E',gSize=10;
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 var drop=document.getElementById('drop'),fi=document.getElementById('fi');
@@ -349,7 +349,7 @@ async function run(){
     var parser=new DOMParser();
     var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
     var allParas=Array.from(xmlDoc.querySelectorAll('p'));
-    gParas=[];gSpoken=[];gUnicode=[];gOmml=[];
+    gParas=[];gSpoken=[];gSpokenPerEq=[];gUnicode=[];gOmml=[];
     allParas.forEach(function(p,idx){
       var maths=Array.from(p.querySelectorAll('oMath'));
       if(!maths.length)return;
@@ -395,8 +395,10 @@ async function run(){
       var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
       var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
 
+      // Store per-equation spoken texts NOW while DOM nodes are fresh
       gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
       gSpoken.push(allSpoken);
+      gSpokenPerEq.push(eqSpokens.slice()); // per-equation spoken array
       gUnicode.push(eqUnicodes);
       gOmml.push(maths);
     });
@@ -461,15 +463,14 @@ async function exportDoc(){
 
   // Process each math paragraph
   var newXml=gDocXml;
-  // Build per-equation spoken texts from gOmml
+  // Use pre-computed per-equation spoken texts
   var paraList=gParas.map(function(mp,i){
-    var eqSpokens=gOmml[i].map(function(m){return o2s(m)||''});
     return{
       paraid:mp.paraid,
       spoken:texts[i],
       imgs:images[i],
       unicodes:gUnicode[i],
-      eqSpokens:eqSpokens,
+      eqSpokens:gSpokenPerEq[i]||[texts[i]],
       paraIdx:i
     };
   }).filter(function(x){return x.paraid}).reverse();
@@ -578,7 +579,7 @@ async function run(){
     var parser=new DOMParser();
     var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
     var allParas=Array.from(xmlDoc.querySelectorAll('p'));
-    gParas=[];gSpoken=[];gUnicode=[];gOmml=[];
+    gParas=[];gSpoken=[];gSpokenPerEq=[];gUnicode=[];gOmml=[];
     allParas.forEach(function(p,idx){
       var maths=Array.from(p.querySelectorAll('oMath'));
       if(!maths.length)return;
@@ -624,8 +625,10 @@ async function run(){
       var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
       var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
 
+      // Store per-equation spoken texts NOW while DOM nodes are fresh
       gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
       gSpoken.push(allSpoken);
+      gSpokenPerEq.push(eqSpokens.slice()); // per-equation spoken array
       gUnicode.push(eqUnicodes);
       gOmml.push(maths);
     });
