@@ -520,9 +520,12 @@ async function exportDoc(){
 
       // Every equation gets image + spoken text
       // Student sees image, Word reads spoken text
+      console.log('Eq '+eqIdx+' spoken: ['+eqSpoken+'] imgs:'+item.imgs.length+' eqSpokens:'+item.eqSpokens.length);
       var replacement=imgRun;
       if(eqSpoken){
         replacement+=spkRun(eqSpoken,gColor,sz,bold,italic);
+      } else {
+        console.warn('No spoken text for eq '+eqIdx+' in para '+item.paraid);
       }
 
       result+=before+replacement;
