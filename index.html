@@ -535,9 +535,6 @@ function isMeaningfulMath(omathXml) {
   if (/^[\/=+\-×÷]$/.test(raw)) return false;
   // Filter: just a number
   if (/^\d+$/.test(raw)) return false;
-  // Filter: n=4 style labels (simple equality with small numbers, no calculus)
-  if (/^n\s*=\s*\d+$/.test(raw)) return false;
-
   return true;
 }
 
