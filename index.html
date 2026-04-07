@@ -155,6 +155,17 @@ h1 span{color:var(--gm)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script>
+window.onerror=function(msg,src,line,col,err){
+  console.error('GLOBAL ERROR:',msg,'at',src+':'+line+':'+col,err);
+  document.getElementById('err').textContent='Error: '+msg;
+  document.getElementById('err').classList.add('show');
+  return false;
+};
+window.onunhandledrejection=function(e){
+  console.error('UNHANDLED PROMISE:',e.reason);
+  document.getElementById('err').textContent='Error: '+(e.reason&&e.reason.message||e.reason);
+  document.getElementById('err').classList.add('show');
+};
 'use strict';
 var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gSpokenPerEq=[],gUnicode=[],gOmml=[],gColor='7A776E',gSize=10;
 
@@ -426,6 +437,7 @@ function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById(
 
 // ── Export ─────────────────────────────────────────────────────────────────────
 async function exportDoc(){
+  console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
   var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
   var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
   document.getElementById('prog').classList.add('show');
@@ -659,6 +671,7 @@ function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById(
 
 // ── Export ─────────────────────────────────────────────────────────────────────
 async function exportDoc(){
+  console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
   var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
   var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
   document.getElementById('prog').classList.add('show');
