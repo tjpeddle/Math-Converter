@@ -54,16 +54,13 @@ h1 span{color:var(--gm)}
 .rt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
 .rc{font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)}
 .rnote{font-size:12.5px;color:var(--mu);background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:.55rem .85rem;margin-bottom:.85rem;line-height:1.6}
-.rnote strong{color:var(--am)}
 .ftable{width:100%;border-collapse:collapse;display:block;max-height:500px;overflow-y:auto}
 .ftable tr{border-bottom:1px solid var(--bg)}
-.ftable tr.warn-row{background:var(--ab)}
 .ftable td{padding:5px 4px;vertical-align:top}
 .ftable .num{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);white-space:nowrap;width:30px;padding-top:9px}
 .ftable textarea{width:100%;font-size:13px;font-family:'Lato',sans-serif;padding:5px 8px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--tx);resize:vertical;min-height:44px;display:block;box-sizing:border-box;line-height:1.5}
 .ftable textarea:focus{outline:none;border-color:var(--gm)}
 .ftable textarea.ed{border-color:#3B82F6;background:#EFF6FF}
-.ftable .wbadge{font-size:10px;color:var(--am);margin-bottom:2px}
 .ract{display:flex;gap:.7rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--bd)}
 .btn-exp{flex:1;padding:.75rem;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;background:var(--gr);border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s}
 .btn-exp:hover{background:var(--gm)}
@@ -79,9 +76,8 @@ h1 span{color:var(--gm)}
 <header>
   <div class="eye">OARS · High Point University · Accessibility</div>
   <h1>Math <span>Read Aloud</span></h1>
-  <p class="sub">Upload a Word exam. Each equation becomes an image the student can see, plus spoken math text that Word reads correctly. No double-reading.</p>
+  <p class="sub">Upload a Word exam. Each equation becomes an image the student can see, plus spoken math text Word reads correctly.</p>
 </header>
-
 <div class="card">
   <div class="clbl">Document</div>
   <div class="drop" id="drop">
@@ -90,13 +86,9 @@ h1 span{color:var(--gm)}
     <div class="drop-m">Drop .docx here or click to browse</div>
     <div class="drop-s">Word exam with equation editor formulas</div>
   </div>
-  <div class="fpill" id="fpill">
-    <span>📝</span><span class="fn" id="fn"></span>
-    <button onclick="clearFile()">✕</button>
-  </div>
+  <div class="fpill" id="fpill"><span>📝</span><span class="fn" id="fn"></span><button onclick="clearFile()">✕</button></div>
   <div class="err" id="err"></div>
 </div>
-
 <div class="card">
   <div class="clbl">Spoken Text Style</div>
   <div class="ctrls">
@@ -126,23 +118,18 @@ h1 span{color:var(--gm)}
     </div>
   </div>
 </div>
-
 <button class="btn-go" id="btnGo" onclick="run()" disabled>⚡ Extract &amp; Review</button>
 <div class="prog" id="prog">
   <div class="pb-bg"><div class="pb" id="pb"></div></div>
   <div class="pl" id="pl">Loading…</div>
 </div>
-
 <div class="review" id="review">
   <div class="card">
-    <div class="rh">
-      <span class="rt">Review Spoken Text</span>
-      <span class="rc" id="rc"></span>
-    </div>
-    <div class="rnote">Edit any spoken line that sounds wrong — it turns blue. <strong>⚠ Yellow</strong> = mixed text+equation, verify carefully.</div>
+    <div class="rh"><span class="rt">Review Spoken Text</span><span class="rc" id="rc"></span></div>
+    <div class="rnote">Edit any spoken line before exporting. Yellow = mixed paragraph, check carefully.</div>
     <table class="ftable" id="ftable"></table>
     <div class="ract">
-      <button class="btn-rst" onclick="resetAll()">↺ Reset all</button>
+      <button class="btn-rst" onclick="resetAll()">↺ Reset</button>
       <button class="btn-exp" onclick="exportDoc()">⬇ Export .docx</button>
     </div>
   </div>
@@ -152,25 +139,17 @@ h1 span{color:var(--gm)}
   </div>
 </div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script>
-window.onerror=function(msg,src,line,col,err){
-  console.error('GLOBAL ERROR:',msg,'at',src+':'+line+':'+col,err);
-  document.getElementById('err').textContent='Error: '+msg;
-  document.getElementById('err').classList.add('show');
-  return false;
-};
-window.onunhandledrejection=function(e){
-  console.error('UNHANDLED PROMISE:',e.reason);
-  document.getElementById('err').textContent='Error: '+(e.reason&&e.reason.message||e.reason);
-  document.getElementById('err').classList.add('show');
-};
 'use strict';
-var gFile=null,gZip=null,gDocXml=null,gParas=[],gSpoken=[],gSpokenPerEq=[],gUnicode=[],gOmml=[],gColor='7A776E',gSize=10;
 
-// ── UI ────────────────────────────────────────────────────────────────────────
-var drop=document.getElementById('drop'),fi=document.getElementById('fi');
+// ── State ─────────────────────────────────────────────────────────────────────
+var gFile=null, gZip=null, gDocXml=null;
+// Per paragraph: {paraid, omathStrings[], spokenTexts[], unicodeTexts[]}
+var gParas=[], gColor='7A776E', gSize=10;
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+var drop=document.getElementById('drop'), fi=document.getElementById('fi');
 drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('over')});
 drop.addEventListener('dragleave',function(){drop.classList.remove('over')});
 drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0])});
@@ -183,645 +162,683 @@ function showErr(m){var b=document.getElementById('err');b.textContent='⚠ '+m;
 function setP(p,l){document.getElementById('pb').style.width=p+'%';document.getElementById('pl').textContent=l}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-// ── OMML → Spoken Math ────────────────────────────────────────────────────────
-var GK={α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
-var SY={'±':'plus or minus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','∈':'is an element of','∪':'union','∩':'intersection','∅':'the empty set','∀':'for all','∃':'there exists','→':'approaches','∂':'partial','°':'degrees'};
-var KN={sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v'};
-var SKP=/^(fPr|sSupPr|sSubPr|sSubSupPr|dPr|radPr|naryPr|mPr|rPr|ctrlPr|rFonts|sz|color|accPr|groupChrPr|limLowPr|limUppPr|barPr|funcPr|phantPr|sPrePr|type|i|b|strike|vertAlign|noProof)$/;
-function xl(s){s=s.trim();if(!s)return'';if(KN[s])return KN[s];var o='';for(var i=0;i<s.length;i++){var c=s[i];if(GK[c])o+=' '+GK[c]+' ';else if(SY[c])o+=' '+SY[c]+' ';else o+=c}return o.trim()}
-function xo(s){s=s.trim();if(!s)return'';var r=s;if(r.indexOf('(')>=0){r=r.replace(/\(([^)]*)\)/g,function(_,x){x=x.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/(\d)([a-zA-Z])/g,'$1 $2');return' the quantity '+x+', end quantity '});r=r.replace(/end quantity\s+the quantity/g,'end quantity, times the quantity')}r=r.replace(/^\s*=\s*-\s*(\d)/,'equals negative $1').replace(/^\s*=\s*(\d)/,'equals $1').replace(/^\s*\+\s*(\d)/,'plus $1').replace(/^\s*-\s*(\d)/,'minus $1').replace(/^\s*\+\s*$/,'plus').replace(/^\s*-\s*$/,'minus').replace(/^\s*-\s+(the quantity)/,'minus $1');r=r.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/([a-zA-Z0-9])=(-?\d)/g,'$1 equals $2').replace(/=0\b/g,'equals 0').replace(/(\d)([a-zA-Z])/g,'$1 $2').replace(/[()]/g,'');return r.replace(/\s+/g,' ').trim()}
-function gr(n){var t=[];n.querySelectorAll('*').forEach(function(el){if(el.localName==='t'&&el.textContent.trim())t.push(el.textContent.trim())});return t.join('')}
-function gc(n,nm){var ch=n.childNodes;for(var i=0;i<ch.length;i++)if(ch[i].localName===nm)return ch[i];return null}
-function pw(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
-function se(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
-function wa(nodes){var r=[];Array.from(nodes).forEach(function(n){wn(n).forEach(function(t){if(t&&t.trim())r.push(t.trim())})});return r}
-function wn(node){if(!node||!node.localName)return[];var tag=node.localName,ch=Array.from(node.childNodes);if(SKP.test(tag))return[];if(/^(oMath|oMathPara|e|fName|box|borderBox|groupChr)$/.test(tag))return wa(ch);if(/^(sup|sub|deg|lim)$/.test(tag)){var r=gr(node);return r?[r]:[]}if(/^(num|den)$/.test(tag))return wa(ch);if(tag==='r'){var tel=gc(node,'t');if(tel&&tel.textContent&&tel.textContent.trim()){var x=xl(tel.textContent.trim());return x?[xo(x)]:[]}return wa(ch)}if(tag==='t'){var s=node.textContent||'';if(s.trim()){var x2=xl(s.trim());return x2?[xo(x2)]:[]}return[]}if(tag==='f'){var fPr=gc(node,'fPr'),st='bar';if(fPr){var ty=Array.from(fPr.childNodes).find(function(c){return c.localName==='type'});if(ty)st=ty.getAttribute('m:val')||'bar'}var nEl=gc(node,'num'),dEl=gc(node,'den'),n=wa(nEl?Array.from(nEl.childNodes):[]).join(' '),d=wa(dEl?Array.from(dEl.childNodes):[]).join(' ');return st==='noBar'?[n+' choose '+d]:[n+' over '+d]}if(tag==='sSup'){var eEl=gc(node,'e'),sEl=gc(node,'sup');return[se(wa(eEl?Array.from(eEl.childNodes):[]).join(' ').trim(),sEl?gr(sEl):'')]}if(tag==='sSub'){var eEl2=gc(node,'e'),sEl2=gc(node,'sub'),b2=wa(eEl2?Array.from(eEl2.childNodes):[]).join(' ').trim(),sr=sEl2?gr(sEl2):'';return b2==='log'||b2==='log of'?['log base '+sr+' of']:[b2+' sub '+sr]}if(tag==='sSubSup'){var eEl3=gc(node,'e'),sEl3=gc(node,'sub'),uEl=gc(node,'sup'),b3=wa(eEl3?Array.from(eEl3.childNodes):[]).join(' ').trim(),s3=sEl3?gr(sEl3):'',u3=uEl?gr(uEl):'';if(/^(sum|the sum)$/i.test(b3))return['the sum from '+s3+' to '+u3];if(/integral/i.test(b3))return['the integral from '+s3+' to '+u3];if(/^(sine|cosine|tangent|secant|cosecant|cotangent)/i.test(b3))return[b3+' to the '+pw(u3)+' of'];return[b3+' sub '+s3+' to the '+pw(u3)]}if(tag==='d'){var dPr=gc(node,'dPr'),oc='(',cc=')';if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc=v2}});var pts=ch.filter(function(c){return c.localName==='e'}),inn=pts.map(function(p){return wa(Array.from(p.childNodes)).join(' ')}).join(', ');if(oc===''&&cc==='')return[inn];if(oc==='|'&&cc==='|')return['the absolute value of '+inn];if(oc==='{'&&cc==='}')return['the set '+inn];return['the quantity '+inn+', end quantity']}if(tag==='func'){var fnEl=gc(node,'fName'),eEl4=gc(node,'e'),fn=wa(fnEl?Array.from(fnEl.childNodes):[]).join(' ').trim(),arg=wa(eEl4?Array.from(eEl4.childNodes):[]).join(' ').trim(),fl=fn.toLowerCase();var FT={sine:'sine of',cosine:'cosine of',tangent:'tangent of',cosecant:'cosecant of',secant:'secant of',cotangent:'cotangent of',arcsine:'arcsine of',arccosine:'arccosine of',arctangent:'arctangent of','hyperbolic sine':'hyperbolic sine of','hyperbolic cosine':'hyperbolic cosine of','hyperbolic tangent':'hyperbolic tangent of','the natural log of':'the natural log of','log of':'log of',log:'log of','the limit':'the limit as','the maximum of':'the maximum of','the minimum of':'the minimum of'};for(var k in FT){if(fl===k||fl.startsWith(k))return[FT[k]+' '+arg]}return[/^[a-zA-Z]$/.test(fl)?fl+' of '+arg:fn+' of '+arg]}if(tag==='rad'){var rPr=gc(node,'radPr'),degEl=gc(node,'deg'),eEl5=gc(node,'e'),inn2=wa(eEl5?Array.from(eEl5.childNodes):[]).join(' '),hide=false;if(rPr){var dh=Array.from(rPr.childNodes).find(function(c){return c.localName==='degHide'});if(dh){var v3=dh.getAttribute('m:val');hide=!v3||v3==='1'||v3==='true'||v3==='on'}}if(hide||!degEl)return['the square root of '+inn2];var dt=gr(degEl).trim();if(!dt||dt==='2')return['the square root of '+inn2];if(dt==='3')return['the cube root of '+inn2];if(dt==='4')return['the fourth root of '+inn2];return['the '+dt+'th root of '+inn2]}if(tag==='nary'){var nPr=gc(node,'naryPr'),sEl4=gc(node,'sub'),uEl2=gc(node,'sup'),eEl6=gc(node,'e'),chr='∑',sh=false,sph=false;if(nPr)Array.from(nPr.childNodes).forEach(function(nc){var nct=nc.localName,v4=nc.getAttribute('m:val')||'';if(nct==='chr'&&v4)chr=v4;if(nct==='subHide')sh=v4==='1'||v4==='on';if(nct==='supHide')sph=v4==='1'||v4==='on'});var NL={'∑':'the sum','∏':'the product','∫':'the integral','∬':'the double integral','∭':'the triple integral','∮':'the line integral'},lbl=NL[chr]||'the operation',fr=(!sh&&sEl4)?gr(sEl4):'',to=(!sph&&uEl2)?gr(uEl2):'',ex=eEl6?wa(Array.from(eEl6.childNodes)).join(' '):'';var out=lbl;if(fr)out+=' from '+fr;if(to)out+=' to '+to;if(ex)out+=' of '+ex;return[out]}if(tag==='limLow'){var eEl7=gc(node,'e'),lEl=gc(node,'lim'),expr=wa(eEl7?Array.from(eEl7.childNodes):[]).join(' '),limt=lEl?gr(lEl):'';return[/^(the\s+)?limit$/i.test(expr.trim())?'the limit as '+limt:expr+' as '+limt]}if(tag==='bar'){var eEl8=gc(node,'e');return[(eEl8?wa(Array.from(eEl8.childNodes)).join(' '):'')+' bar']}if(tag==='acc'){var eEl9=gc(node,'e');return[(eEl9?wa(Array.from(eEl9.childNodes)).join(' '):'')+' hat']}if(tag==='phant')return[];return wa(ch)}
-function pp(tokens){var r=[],i=0;while(i<tokens.length){var t=tokens[i];if(/^[a-zA-Z]$/.test(t)&&i+1<tokens.length){var nx=tokens[i+1];if(nx.startsWith('the quantity ')&&nx.includes('end quantity')){r.push(t+' of '+nx.replace(/^the quantity\s*/,'').replace(/,?\s*end quantity.*$/,'').trim());i+=2;continue}}if(t.endsWith('end quantity')&&i+1<tokens.length){var nx2=tokens[i+1];if(nx2.startsWith('the quantity')||nx2.startsWith('times the quantity')){r.push(t+', times');i++;continue}}r.push(t);i++}return rs(r)}
-function ic(tok){return/^(x|y|z|[a-zA-Z])\s+(squared|cubed|to the)/.test(tok)||/^(plus|minus)\s+[\da-zA-Z]/.test(tok)||/^\d+\s+[a-zA-Z]/.test(tok)||/^[a-zA-Z]\s+(squared|cubed|to the|plus|minus)/.test(tok)}
-function rs(tokens){var res=tokens.slice(),changed=true;while(changed){changed=false;for(var i=0;i<res.length;i++){var t=res[i];if(t.endsWith('end quantity')&&i+1<res.length){var nx=res[i+1],mA=nx.match(/^(-\s*|minus\s+|plus\s+|\+\s*)(\d.*)/);if(mA&&i+2<res.length){var op=(mA[1].trim()==='-'||mA[1].trim()==='minus')?'minus':'plus',parts=[mA[2].trim()],j=i+2;while(j<res.length&&ic(res[j])){parts.push(res[j]);j++}if(parts.length>1){res=res.slice(0,i).concat([t+', '+op+' the quantity '+parts.join(' ')+', end quantity']).concat(res.slice(j));changed=true;break}}}var mB=t.match(/^(.*end quantity),?\s+(\d+)$/);if(mB&&i+1<res.length){var bef=mB[1].replace(/,\s*$/,'').trim(),parts2=[mB[2]],j2=i+1;while(j2<res.length&&ic(res[j2])){parts2.push(res[j2]);j2++}if(parts2.length>1){res=res.slice(0,i).concat([bef+', times the quantity '+parts2.join(' ')+', end quantity']).concat(res.slice(j2));changed=true;break}}}}return res}
-function o2s(omath){var t=wa(Array.from(omath.childNodes));t=pp(t);var s=t.join(' ');s=s.replace(/\s+/g,' ').replace(/,\s*,/g,',').replace(/\bof of\b/g,'of').replace(/end quantity,?\s+end quantity/g,'end quantity');return s.trim()}
+// ── Extract oMath blocks from XML string ──────────────────────────────────────
+// Works directly on the raw XML string - no DOM namespace issues
+function extractOmaths(paraXml) {
+  // Returns array of {type, xml, start, end} for each oMath/oMathPara in order
+  var results = [];
+  var pos = 0;
+  while (pos < paraXml.length) {
+    var tags = [
+      {open:'<m:oMath>', close:'</m:oMath>', type:'oMath'},
+      {open:'<m:oMathPara>', close:'</m:oMathPara>', type:'oMathPara'}
+    ];
+    var best = null;
+    tags.forEach(function(t) {
+      var s = paraXml.indexOf(t.open, pos);
+      if (s >= 0 && (!best || s < best.start)) {
+        best = {start: s, tag: t};
+      }
+    });
+    if (!best) break;
+    var endPos = paraXml.indexOf(best.tag.close, best.start);
+    if (endPos < 0) break;
+    endPos += best.tag.close.length;
+    results.push({
+      type: best.tag.type,
+      xml: paraXml.slice(best.start, endPos),
+      start: best.start,
+      end: endPos
+    });
+    pos = endPos;
+  }
+  return results;
+}
 
-// ── OMML → Unicode display string ─────────────────────────────────────────────
+// ── Parse single oMath XML string → spoken text ───────────────────────────────
+// Uses DOMParser on a standalone XML document with proper namespace declarations
+// This avoids the namespace issues with parsing the full document
+var NS_M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
+var NS_W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+function omathToSpoken(omathXml) {
+  try {
+    var wrapped = '<root xmlns:m="' + NS_M + '" xmlns:w="' + NS_W + '">' + omathXml + '</root>';
+    var xmlDoc = new DOMParser().parseFromString(wrapped, 'application/xml');
+    var root = xmlDoc.documentElement;
+    // Get the oMath element - it's the first child of root
+    var omath = root.firstElementChild;
+    if (!omath) return '';
+    return processNode(omath);
+  } catch(e) {
+    return '';
+  }
+}
+
+function omathToUnicode(omathXml) {
+  try {
+    var wrapped = '<root xmlns:m="' + NS_M + '" xmlns:w="' + NS_W + '">' + omathXml + '</root>';
+    var xmlDoc = new DOMParser().parseFromString(wrapped, 'application/xml');
+    var root = xmlDoc.documentElement;
+    var omath = root.firstElementChild;
+    if (!omath) return '?';
+    return uniNode(omath) || '?';
+  } catch(e) {
+    return '?';
+  }
+}
+
+// ── Spoken math engine (works on standalone-parsed nodes) ─────────────────────
+var GK={α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
+var SY={'±':'plus or minus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','∈':'is an element of','∪':'union','∩':'intersection','→':'approaches','∂':'partial','°':'degrees'};
+var KN={sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v'};
+var SKIP_TAGS={fPr:1,sSupPr:1,sSubPr:1,sSubSupPr:1,dPr:1,radPr:1,naryPr:1,mPr:1,rPr:1,ctrlPr:1,rFonts:1,sz:1,color:1,accPr:1,groupChrPr:1,limLowPr:1,limUppPr:1,barPr:1,funcPr:1,phantPr:1,sPrePr:1,type:1,i:1,b:1,strike:1,vertAlign:1,noProof:1,sty:1};
+var PASS_TAGS={oMath:1,oMathPara:1,e:1,fName:1,box:1,borderBox:1,groupChr:1};
+
+function xlate(s){
+  s=s.trim();if(!s)return'';if(KN[s])return KN[s];
+  var o='';for(var i=0;i<s.length;i++){var c=s[i];if(GK[c])o+=' '+GK[c]+' ';else if(SY[c])o+=' '+SY[c]+' ';else o+=c}
+  return o.trim();
+}
+function expandOps(s){
+  s=s.trim();if(!s)return'';var r=s;
+  if(r.indexOf('(')>=0){r=r.replace(/\(([^)]*)\)/g,function(_,x){x=x.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/(\d)([a-zA-Z])/g,'$1 $2');return' the quantity '+x+', end quantity '});r=r.replace(/end quantity\s+the quantity/g,'end quantity, times the quantity')}
+  r=r.replace(/^\s*=\s*-\s*(\d)/,'equals negative $1').replace(/^\s*=\s*(\d)/,'equals $1').replace(/^\s*\+\s*(\d)/,'plus $1').replace(/^\s*-\s*(\d)/,'minus $1').replace(/^\s*\+\s*$/,'plus').replace(/^\s*-\s*$/,'minus').replace(/^\s*-\s+(the quantity)/,'minus $1');
+  r=r.replace(/([a-zA-Z0-9])\+(\d)/g,'$1 plus $2').replace(/([a-zA-Z0-9])-(\d)/g,'$1 minus $2').replace(/([a-zA-Z0-9])\+([a-zA-Z])/g,'$1 plus $2').replace(/([a-zA-Z0-9])-([a-zA-Z])/g,'$1 minus $2').replace(/([a-zA-Z0-9])=(-?\d)/g,'$1 equals $2').replace(/=0\b/g,'equals 0').replace(/(\d)([a-zA-Z])/g,'$1 $2').replace(/[()]/g,'');
+  return r.replace(/\s+/g,' ').trim();
+}
+
+function getRawText(node){
+  var t=[];
+  function walk(n){
+    if(n.nodeType===3&&n.nodeValue&&n.nodeValue.trim())t.push(n.nodeValue.trim());
+    for(var i=0;i<n.childNodes.length;i++)walk(n.childNodes[i]);
+  }
+  walk(node);return t.join('');
+}
+
+function getChild(node,name){
+  for(var i=0;i<node.childNodes.length;i++){
+    var c=node.childNodes[i];
+    if(c.localName===name)return c;
+  }
+  return null;
+}
+
+function walkAll(nodes){
+  var r=[];
+  for(var i=0;i<nodes.length;i++){
+    var tok=processNode(nodes[i]);
+    if(tok&&tok.trim())r.push(tok.trim());
+  }
+  return r;
+}
+
+function childArray(node){
+  if(!node)return[];
+  var ch=[];
+  for(var i=0;i<node.childNodes.length;i++)ch.push(node.childNodes[i]);
+  return ch;
+}
+
+function pw(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
+function spkExp(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
+
+function processNode(node) {
+  if (!node) return '';
+  if (node.nodeType === 3) { // text node
+    var t = node.nodeValue || '';
+    // Skip pure whitespace and hair spaces
+    t = t.replace(/[\u200a\u200b\u00a0]/g, '').trim();
+    if (!t) return '';
+    return expandOps(xlate(t));
+  }
+  var tag = node.localName || '';
+  if (!tag) return '';
+  if (SKIP_TAGS[tag]) return '';
+  if (PASS_TAGS[tag]) {
+    return walkAll(childArray(node)).join(' ');
+  }
+
+  var ch = childArray(node);
+
+  if (tag === 'r') {
+    var tel = getChild(node, 't');
+    if (tel) {
+      var txt = (tel.textContent || '').replace(/[\u200a\u200b\u00a0]/g, '').trim();
+      if (txt) return expandOps(xlate(txt));
+    }
+    return walkAll(ch).join(' ');
+  }
+  if (tag === 't') {
+    var s = (node.textContent || '').replace(/[\u200a\u200b\u00a0]/g, '').trim();
+    return s ? expandOps(xlate(s)) : '';
+  }
+  if (tag === 'f') {
+    var nEl=getChild(node,'num'), dEl=getChild(node,'den');
+    var n=walkAll(childArray(nEl)).join(' '), d=walkAll(childArray(dEl)).join(' ');
+    return n + ' over ' + d;
+  }
+  if (tag === 'sSup') {
+    var eEl=getChild(node,'e'), sEl=getChild(node,'sup');
+    var base=walkAll(childArray(eEl)).join(' ').trim();
+    var exp=getRawText(sEl||node);
+    return spkExp(base, exp);
+  }
+  if (tag === 'sSub') {
+    var eEl2=getChild(node,'e'), sEl2=getChild(node,'sub');
+    var base2=walkAll(childArray(eEl2)).join(' ').trim();
+    var sub=getRawText(sEl2||node);
+    if(base2==='log'||base2==='log of')return'log base '+sub+' of';
+    return base2+' sub '+sub;
+  }
+  if (tag === 'sSubSup') {
+    var eEl3=getChild(node,'e'), sEl3=getChild(node,'sub'), pEl=getChild(node,'sup');
+    var base3=walkAll(childArray(eEl3)).join(' ').trim();
+    var s3=getRawText(sEl3||node), u3=getRawText(pEl||node);
+    if(/^(sum|the sum)$/i.test(base3))return'the sum from '+s3+' to '+u3;
+    if(/integral/i.test(base3))return'the integral from '+s3+' to '+u3;
+    return base3+' sub '+s3+' to the '+pw(u3);
+  }
+  if (tag === 'd') {
+    var dPr=getChild(node,'dPr'), oc='(', cc=')';
+    if(dPr){childArray(dPr).forEach(function(dc){
+      if(dc.localName==='begChr'){var v=dc.getAttributeNS(NS_M,'val');if(v!==null)oc=v}
+      if(dc.localName==='endChr'){var v2=dc.getAttributeNS(NS_M,'val');if(v2!==null)cc=v2}
+    })}
+    var pts=ch.filter(function(c){return c.localName==='e'});
+    var inn=pts.map(function(p){return walkAll(childArray(p)).join(' ')}).join(', ');
+    if(oc===''&&cc==='')return inn;
+    if(oc==='|'&&cc==='|')return'the absolute value of '+inn;
+    if(oc==='{'&&cc==='}')return'the set '+inn;
+    return'the quantity '+inn+', end quantity';
+  }
+  if (tag === 'func') {
+    var fnEl=getChild(node,'fName'), eEl4=getChild(node,'e');
+    var fn=walkAll(childArray(fnEl)).join(' ').trim();
+    var arg=walkAll(childArray(eEl4)).join(' ').trim();
+    var fl=fn.toLowerCase();
+    var FT={sine:'sine of',cosine:'cosine of',tangent:'tangent of',cosecant:'cosecant of',secant:'secant of',cotangent:'cotangent of',arcsine:'arcsine of',arccosine:'arccosine of',arctangent:'arctangent of','hyperbolic sine':'hyperbolic sine of','hyperbolic cosine':'hyperbolic cosine of','hyperbolic tangent':'hyperbolic tangent of','the natural log of':'the natural log of','log of':'log of',log:'log of','the limit':'the limit as','the maximum of':'the maximum of','the minimum of':'the minimum of'};
+    for(var k in FT){if(fl===k||fl.startsWith(k))return FT[k]+' '+arg}
+    return(/^[a-zA-Z]$/.test(fl)?fl+' of ':fn+' of ')+arg;
+  }
+  if (tag === 'rad') {
+    var rPr=getChild(node,'radPr'), degEl=getChild(node,'deg'), eEl5=getChild(node,'e');
+    var inn2=walkAll(childArray(eEl5)).join(' '), hide=false;
+    if(rPr){var dh=getChild(rPr,'degHide');if(dh){var v3=dh.getAttributeNS(NS_M,'val');hide=!v3||v3==='1'||v3==='true'||v3==='on'}}
+    if(hide||!degEl)return'the square root of '+inn2;
+    var dt=getRawText(degEl).trim();
+    if(!dt||dt==='2')return'the square root of '+inn2;
+    if(dt==='3')return'the cube root of '+inn2;
+    if(dt==='4')return'the fourth root of '+inn2;
+    return'the '+dt+'th root of '+inn2;
+  }
+  if (tag === 'nary') {
+    var nPr=getChild(node,'naryPr'), sEl4=getChild(node,'sub'), uEl=getChild(node,'sup'), eEl6=getChild(node,'e');
+    var chr='∑', sh=false, sph=false;
+    if(nPr){childArray(nPr).forEach(function(nc){
+      var nct=nc.localName, v4=nc.getAttributeNS(NS_M,'val')||'';
+      if(nct==='chr'&&v4)chr=v4;
+      if(nct==='subHide')sh=v4==='1'||v4==='on';
+      if(nct==='supHide')sph=v4==='1'||v4==='on';
+    })}
+    var NL={'∑':'the sum','∏':'the product','∫':'the integral','∬':'the double integral','∭':'the triple integral','∮':'the line integral'};
+    var lbl=NL[chr]||'the operation';
+    var fr=(!sh&&sEl4)?getRawText(sEl4):'';
+    var to=(!sph&&uEl)?getRawText(uEl):'';
+    var ex=eEl6?walkAll(childArray(eEl6)).join(' '):'';
+    var out=lbl;
+    if(fr)out+=' from '+fr;
+    if(to)out+=' to '+to;
+    if(ex)out+=' of '+ex;
+    return out;
+  }
+  if (tag === 'limLow') {
+    var eEl7=getChild(node,'e'), lEl=getChild(node,'lim');
+    var expr=walkAll(childArray(eEl7)).join(' ');
+    var limt=lEl?getRawText(lEl):'';
+    return(/^(the\s+)?limit$/i.test(expr.trim())?'the limit as ':expr+' as ')+limt;
+  }
+  if (tag === 'limUpp') {
+    var eEl8=getChild(node,'e'), lEl2=getChild(node,'lim');
+    return walkAll(childArray(eEl8)).join(' ')+' to '+(lEl2?getRawText(lEl2):'');
+  }
+  if (tag === 'bar') {
+    var eEl9=getChild(node,'e');
+    return walkAll(childArray(eEl9)).join(' ')+' bar';
+  }
+  if (tag === 'acc') {
+    var eEl10=getChild(node,'e');
+    return walkAll(childArray(eEl10)).join(' ')+' hat';
+  }
+  if (tag === 'phant') return '';
+  // Default: process children
+  return walkAll(ch).join(' ');
+}
+
+// ── Unicode display engine ────────────────────────────────────────────────────
 var SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻','+':'⁺','n':'ⁿ','x':'ˣ'};
 var SUB={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
 function toSup(s){return s.split('').map(function(c){return SUP[c]||c}).join('')}
 function toSub(s){return s.split('').map(function(c){return SUB[c]||c}).join('')}
-function allIn(s,map){return s.split('').every(function(c){return map[c]})}
 
-function u2(node){
-  if(!node||!node.localName)return'';
-  var tag=node.localName,ch=Array.from(node.childNodes);
-  if(SKP.test(tag))return'';
-  if(/^(oMath|oMathPara|e|fName|box|borderBox|groupChr)$/.test(tag))return ch.map(u2).join('');
-  if(/^(sup|sub|deg|lim|num|den)$/.test(tag))return ch.map(u2).join('');
-  if(tag==='r'){var tel=gc(node,'t');return tel&&tel.textContent.trim()?tel.textContent.trim():ch.map(u2).join('')}
-  if(tag==='t')return(node.textContent||'').trim();
-  if(tag==='f'){
-    var nEl=gc(node,'num'),dEl=gc(node,'den');
-    var n=nEl?Array.from(nEl.childNodes).map(u2).join(''):''
-    var d=dEl?Array.from(dEl.childNodes).map(u2).join(''):''
-    return'('+n+')/('+d+')';
+function uniNode(node) {
+  if (!node) return '';
+  if (node.nodeType === 3) {
+    return (node.nodeValue||'').replace(/[\u200a\u200b\u00a0]/g,'').trim();
   }
-  if(tag==='sSup'){
-    var eEl=gc(node,'e'),sEl=gc(node,'sup');
-    var base=eEl?Array.from(eEl.childNodes).map(u2).join(''):'';
-    var exp=gr(sEl||node);
-    return allIn(exp,SUP)?base+toSup(exp):base+'^('+exp+')';
+  var tag = node.localName || '';
+  if (!tag || SKIP_TAGS[tag]) return '';
+  var ch = childArray(node);
+  if (PASS_TAGS[tag] || tag==='num'||tag==='den'||tag==='sup'||tag==='sub'||tag==='deg'||tag==='lim') {
+    return ch.map(uniNode).join('');
   }
-  if(tag==='sSub'){
-    var eEl2=gc(node,'e'),sEl2=gc(node,'sub');
-    var base2=eEl2?Array.from(eEl2.childNodes).map(u2).join(''):'';
-    var sub=gr(sEl2||node);
-    return allIn(sub,SUB)?base2+toSub(sub):base2+'_('+sub+')';
+  if (tag === 'r') {
+    var tel = getChild(node, 't');
+    if (tel) {
+      var t = (tel.textContent||'').replace(/[\u200a\u200b\u00a0]/g,'').trim();
+      return t;
+    }
+    return ch.map(uniNode).join('');
   }
-  if(tag==='sSubSup'){
-    var eEl3=gc(node,'e'),sEl3=gc(node,'sub'),pEl=gc(node,'sup');
-    var base3=eEl3?Array.from(eEl3.childNodes).map(u2).join(''):'';
-    return base3+toSub(gr(sEl3||node))+toSup(gr(pEl||node));
+  if (tag === 't') {
+    return (node.textContent||'').replace(/[\u200a\u200b\u00a0]/g,'').trim();
   }
-  if(tag==='d'){
-    var dPr=gc(node,'dPr'),oc2='(',cc2=')';
-    if(dPr)Array.from(dPr.childNodes).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttribute('m:val');if(v!==null)oc2=v}if(dc.localName==='endChr'){var v2=dc.getAttribute('m:val');if(v2!==null)cc2=v2}});
+  if (tag === 'f') {
+    var nEl=getChild(node,'num'), dEl=getChild(node,'den');
+    var n=ch.filter(function(c){return c.localName==='num'}).map(function(c){return childArray(c).map(uniNode).join('')}).join('');
+    var d=ch.filter(function(c){return c.localName==='den'}).map(function(c){return childArray(c).map(uniNode).join('')}).join('');
+    return '('+n+')/('+d+')';
+  }
+  if (tag === 'sSup') {
+    var eEl=getChild(node,'e'), sEl=getChild(node,'sup');
+    var base=childArray(eEl).map(uniNode).join('');
+    var exp=getRawText(sEl||node).replace(/[\u200a\u200b]/g,'').trim();
+    return base+(exp.split('').every(function(c){return SUP[c]})?toSup(exp):'^('+exp+')');
+  }
+  if (tag === 'sSub') {
+    var eEl2=getChild(node,'e'), sEl2=getChild(node,'sub');
+    var base2=childArray(eEl2).map(uniNode).join('');
+    var sub=getRawText(sEl2||node).replace(/[\u200a\u200b]/g,'').trim();
+    return base2+(sub.split('').every(function(c){return SUB[c]})?toSub(sub):'_('+sub+')');
+  }
+  if (tag === 'sSubSup') {
+    var eEl3=getChild(node,'e'), sEl3=getChild(node,'sub'), pEl=getChild(node,'sup');
+    var base3=childArray(eEl3).map(uniNode).join('');
+    return base3+toSub(getRawText(sEl3||node).replace(/[\u200a]/g,'').trim())+toSup(getRawText(pEl||node).replace(/[\u200a]/g,'').trim());
+  }
+  if (tag === 'd') {
+    var dPr=getChild(node,'dPr'), oc='(', cc=')';
+    if(dPr){childArray(dPr).forEach(function(dc){
+      if(dc.localName==='begChr'){var v=dc.getAttributeNS(NS_M,'val');if(v!==null)oc=v}
+      if(dc.localName==='endChr'){var v2=dc.getAttributeNS(NS_M,'val');if(v2!==null)cc=v2}
+    })}
     var pts=ch.filter(function(c){return c.localName==='e'});
-    var inn2=pts.map(function(p){return Array.from(p.childNodes).map(u2).join('')}).join(', ');
-    return(oc2||'(')+inn2+(cc2||')');
+    var inn=pts.map(function(p){return childArray(p).map(uniNode).join('')}).join(', ');
+    return(oc||'(')+inn+(cc||')');
   }
-  if(tag==='func'){
-    var fnEl2=gc(node,'fName'),eEl4=gc(node,'e');
-    var fn2=fnEl2?Array.from(fnEl2.childNodes).map(u2).join(''):''
-    var arg=eEl4?Array.from(eEl4.childNodes).map(u2).join(''):''
-    return fn2+'('+arg+')';
+  if (tag === 'func') {
+    var fnEl=getChild(node,'fName'), eEl4=getChild(node,'e');
+    var fn=childArray(fnEl).map(uniNode).join('');
+    var arg=childArray(eEl4).map(uniNode).join('');
+    return fn+'('+arg+')';
   }
-  if(tag==='rad'){
-    var rPr2=gc(node,'radPr'),degEl2=gc(node,'deg'),eEl5=gc(node,'e');
-    var inn3=eEl5?Array.from(eEl5.childNodes).map(u2).join(''):'';
-    var hide2=false;
-    if(rPr2){var dh2=Array.from(rPr2.childNodes).find(function(c){return c.localName==='degHide'});if(dh2){var v5=dh2.getAttribute('m:val');hide2=!v5||v5==='1'}}
-    if(hide2||!degEl2)return'√('+inn3+')';
-    var dt2=gr(degEl2).trim();
-    return dt2==='3'?'∛('+inn3+')':dt2==='4'?'∜('+inn3+')':'√['+dt2+']('+inn3+')';
+  if (tag === 'rad') {
+    var rPr=getChild(node,'radPr'), degEl=getChild(node,'deg'), eEl5=getChild(node,'e');
+    var inn2=childArray(eEl5).map(uniNode).join('');
+    var hide=false;
+    if(rPr){var dh=getChild(rPr,'degHide');if(dh){var v3=dh.getAttributeNS(NS_M,'val');hide=!v3||v3==='1'}}
+    if(hide||!degEl)return'√('+inn2+')';
+    var dt=getRawText(degEl).trim();
+    return dt==='3'?'∛('+inn2+')':dt==='4'?'∜('+inn2+')':'√['+dt+']('+inn2+')';
   }
-  if(tag==='nary'){
-    var nPr2=gc(node,'naryPr'),sEl5=gc(node,'sub'),uEl2=gc(node,'sup'),eEl6=gc(node,'e');
-    var chr2='∫',sh2=false,sph2=false;
-    if(nPr2)Array.from(nPr2.childNodes).forEach(function(nc){var nct=nc.localName,v6=nc.getAttribute('m:val')||'';if(nct==='chr'&&v6)chr2=v6;if(nct==='subHide')sh2=v6==='1';if(nct==='supHide')sph2=v6==='1'});
-    var fr2=!sh2&&sEl5?toSub(gr(sEl5)):'',to2=!sph2&&uEl2?toSup(gr(uEl2)):'';
-    var ex2=eEl6?Array.from(eEl6.childNodes).map(u2).join(''):'';
-    return chr2+fr2+to2+ex2;
+  if (tag === 'nary') {
+    var nPr=getChild(node,'naryPr'), sEl5=getChild(node,'sub'), uEl=getChild(node,'sup'), eEl6=getChild(node,'e');
+    var chr='∫', sh=false, sph=false;
+    if(nPr){childArray(nPr).forEach(function(nc){
+      var nct=nc.localName, v6=nc.getAttributeNS(NS_M,'val')||'';
+      if(nct==='chr'&&v6)chr=v6;
+      if(nct==='subHide')sh=v6==='1';
+      if(nct==='supHide')sph=v6==='1';
+    })}
+    var fr=!sh&&sEl5?toSub(getRawText(sEl5).replace(/[\u200a]/g,'')):'';
+    var to=!sph&&uEl?toSup(getRawText(uEl).replace(/[\u200a]/g,'')):'';
+    var ex=eEl6?childArray(eEl6).map(uniNode).join(''):'';
+    return chr+fr+to+ex;
   }
-  if(tag==='limLow'){
-    var eEl7=gc(node,'e'),lEl=gc(node,'lim');
-    var expr2=eEl7?Array.from(eEl7.childNodes).map(u2).join(''):'';
-    var limt2=lEl?gr(lEl):'';
-    return expr2+'_('+limt2+')';
+  if (tag === 'limLow') {
+    var eEl7=getChild(node,'e'), lEl=getChild(node,'lim');
+    return childArray(eEl7).map(uniNode).join('')+'_('+getRawText(lEl||node)+')';
   }
-  if(tag==='bar'){var eEl8=gc(node,'e');return(eEl8?Array.from(eEl8.childNodes).map(u2).join(''):'')+'̄'}
-  if(tag==='phant')return'';
-  return ch.map(u2).join('');
-}
-function o2u(omath){return u2(omath).trim()}
-
-// ── Canvas PNG renderer ────────────────────────────────────────────────────────
-function renderFormulaPng(unicodeStr){
-  // Render the unicode math string to a PNG using HTML5 Canvas
-  // Uses browser's built-in font rendering — zero dependencies
-  var fontSize=18;
-  var font='bold '+fontSize+'px "Cambria Math","Times New Roman",serif';
-
-  // Measure text width first
-  var tmpCanvas=document.createElement('canvas');
-  tmpCanvas.width=800;tmpCanvas.height=60;
-  var tmpCtx=tmpCanvas.getContext('2d');
-  tmpCtx.font=font;
-  var metrics=tmpCtx.measureText(unicodeStr);
-  var textW=Math.ceil(metrics.width);
-  var textH=fontSize+10;
-
-  // Create properly sized canvas with padding
-  var pad=12;
-  var W=textW+pad*2;
-  var H=textH+pad*2;
-
-  var canvas=document.createElement('canvas');
-  canvas.width=W;canvas.height=H;
-  var ctx=canvas.getContext('2d');
-
-  // White RGB background (not transparent)
-  ctx.fillStyle='white';
-  ctx.fillRect(0,0,W,H);
-
-  // Draw formula text in black
-  ctx.fillStyle='black';
-  ctx.font=font;
-  ctx.textBaseline='middle';
-  ctx.fillText(unicodeStr,pad,H/2);
-
-  // Export as PNG - already RGB because we filled white background
-  var dataUrl=canvas.toDataURL('image/png');
-  var b64=dataUrl.split(',')[1];
-
-  // EMU calculation: at 96dpi, 1px = 9525 EMU
-  var wEmu=Math.round(W*9525);
-  var hEmu=Math.round(H*9525);
-  // Cap to 5 inches wide
-  var MAX=4572000;
-  if(wEmu>MAX){var sc=MAX/wEmu;wEmu=MAX;hEmu=Math.round(hEmu*sc)}
-
-  return{b64:b64,wEmu:wEmu,hEmu:hEmu};
+  if (tag === 'phant') return '';
+  return ch.map(uniNode).join('');
 }
 
-// ── DOCX helpers ───────────────────────────────────────────────────────────────
-function imgXml(rId,wEmu,hEmu,alt){
-  var id=Math.abs(rId.split('').reduce(function(a,c){return(a*31+c.charCodeAt(0))|0},0))%90000+10000;
-  var a=(alt||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  return'<w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+wEmu+'" cy="'+hEmu+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="'+id+'" name="Math'+id+'" descr="'+a+'"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+id+'" name="Math'+id+'"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rId+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr bwMode="auto"><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+wEmu+'" cy="'+hEmu+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
-}
-function spkRun(text,color,sz,bold,italic){
-  var b=bold?'<w:b/>':'',it=italic?'<w:i/>':'';
-  var rp=b+it+'<w:color w:val="'+color+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
-  var tx=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  return'<w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve"> '+tx+'</w:t></w:r>';
+// ── Is this oMath meaningful? (filter out pts labels, single letters used as placeholders) ──
+function isMeaningfulMath(omathXml) {
+  // Extract raw text
+  var texts = [];
+  var re = /<m:t[^>]*>([^<]*)<\/m:t>/g, m;
+  while ((m = re.exec(omathXml)) !== null) {
+    var t = m[1].replace(/[\u200a\u200b\u00a0]/g,'').trim();
+    if (t) texts.push(t);
+  }
+  var raw = texts.join('').trim();
+  // Filter: pure points labels like "6pts", "4pts", "2pts"
+  if (/^\d+\s*pts?$/i.test(raw)) return false;
+  // Filter: single characters that are just placeholders (u, n, f used as labels)
+  // But keep single letters that are part of actual math context - too risky to filter
+  // Filter: empty
+  if (!raw) return false;
+  return true;
 }
 
-// ── Main extraction ────────────────────────────────────────────────────────────
-async function run(){
-  if(!gFile)return;
-  document.getElementById('btnGo').disabled=true;
+// ── Canvas PNG renderer ───────────────────────────────────────────────────────
+function renderFormulaPng(unicodeStr) {
+  if (!unicodeStr || unicodeStr === '?') unicodeStr = '(formula)';
+  var fontSize = 16;
+  var font = 'bold ' + fontSize + 'px "Cambria Math","Times New Roman",serif';
+  var pad = 10;
+  var tmpC = document.createElement('canvas');
+  tmpC.width = 600; tmpC.height = 50;
+  var tmpCtx = tmpC.getContext('2d');
+  tmpCtx.font = font;
+  var tw = Math.ceil(tmpCtx.measureText(unicodeStr).width);
+  var W = tw + pad*2, H = fontSize + pad*2;
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'black'; ctx.font = font; ctx.textBaseline = 'middle';
+  ctx.fillText(unicodeStr, pad, H/2);
+  var b64 = canvas.toDataURL('image/png').split(',')[1];
+  // EMU: at 96dpi 1px = 9525 EMU
+  var wEmu = Math.round(W * 9525), hEmu = Math.round(H * 9525);
+  var MAX = 4572000;
+  if (wEmu > MAX) { var sc = MAX/wEmu; wEmu = MAX; hEmu = Math.round(hEmu*sc); }
+  return {b64:b64, wEmu:wEmu, hEmu:hEmu};
+}
+
+// ── DOCX helpers ──────────────────────────────────────────────────────────────
+function imgXml(rId, wEmu, hEmu, alt) {
+  var id = Math.abs(rId.split('').reduce(function(a,c){return(a*31+c.charCodeAt(0))|0},0)) % 90000 + 10000;
+  var a = (alt||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return '<w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+wEmu+'" cy="'+hEmu+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="'+id+'" name="Math'+id+'" descr="'+a+'"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+id+'" name="Math'+id+'"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rId+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr bwMode="auto"><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+wEmu+'" cy="'+hEmu+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
+}
+
+function spkRun(text, color, sz, bold, italic) {
+  var b=bold?'<w:b/>':'', it=italic?'<w:i/>':'';
+  var rp = b+it+'<w:color w:val="'+color+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>';
+  var tx = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return '<w:r><w:rPr>'+rp+'</w:rPr><w:t xml:space="preserve"> '+tx+'</w:t></w:r>';
+}
+
+// ── Main extraction ───────────────────────────────────────────────────────────
+async function run() {
+  if (!gFile) return;
+  document.getElementById('btnGo').disabled = true;
   document.getElementById('prog').classList.add('show');
   document.getElementById('review').classList.remove('show');
   document.getElementById('dlrow').classList.remove('show');
   document.getElementById('err').classList.remove('show');
-  try{
-    setP(10,'Reading file…');
-    var buf=await gFile.arrayBuffer();
-    gZip=await JSZip.loadAsync(buf);
-    setP(25,'Parsing equations…');
-    gDocXml=await gZip.file('word/document.xml').async('string');
-    var parser=new DOMParser();
-    var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
-    var allParas=Array.from(xmlDoc.querySelectorAll('p'));
-    gParas=[];gSpoken=[];gSpokenPerEq=[];gUnicode=[];gOmml=[];
-    allParas.forEach(function(p,idx){
-      var maths=Array.from(p.querySelectorAll('oMath'));
-      if(!maths.length)return;
-      var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
-      if(!paraid)return;
+  gParas = [];
 
-      // Walk children in document order to classify each equation
-      var questionEqIdx=[];   // equation indices that are question formulas
-      var answerEqIdx=[];     // equation indices that are answer choices (a. b. c. d.)
-      var eqCounter=0;
-      var prevText='';
-      var isOmathParaOnly=true; // true if paragraph is just a standalone oMathPara
+  try {
+    setP(10, 'Reading file…');
+    var buf = await gFile.arrayBuffer();
+    gZip = await JSZip.loadAsync(buf);
+    setP(25, 'Parsing equations…');
+    gDocXml = await gZip.file('word/document.xml').async('string');
 
-      Array.from(p.childNodes).forEach(function(child){
-        var tag=child.nodeName||'';
-        var localTag=tag.split(':').pop().split('}').pop();
-        if(localTag==='pPr')return;
+    // Find all paragraphs with math by scanning the raw XML string
+    // Look for w14:paraId="..." that have <m:oMath> in the same paragraph
+    var pos = 0;
+    var paraCount = 0;
 
-        if(localTag==='oMath'||localTag==='oMathPara'){
-          if(localTag==='oMath')isOmathParaOnly=false;
-          // Check if preceded by answer label a./b./c./d.
-          var pt=prevText.trim();
-          var isAnswerChoice=pt===''?false:
-            /^[a-eA-E]\.$/.test(pt)||/^[a-eA-E]\.\s*$/.test(pt)||
-            pt.endsWith('a.')||pt.endsWith('b.')||pt.endsWith('c.')||pt.endsWith('d.')||pt.endsWith('e.');
-          if(isAnswerChoice){
-            answerEqIdx.push(eqCounter);
-          } else {
-            questionEqIdx.push(eqCounter);
-          }
-          eqCounter++;
+    while (pos < gDocXml.length) {
+      var pOpen = gDocXml.indexOf('<w:p ', pos);
+      if (pOpen < 0) break;
+      var pClose = gDocXml.indexOf('</w:p>', pOpen);
+      if (pClose < 0) break;
+      pClose += 6;
+      var paraXml = gDocXml.slice(pOpen, pClose);
+
+      // Check if this paragraph has any math
+      if (paraXml.indexOf('<m:oMath>') < 0 && paraXml.indexOf('<m:oMathPara>') < 0) {
+        pos = pClose; continue;
+      }
+
+      // Extract paraId
+      var pidMatch = paraXml.match(/w14:paraId="([^"]+)"/);
+      var paraid = pidMatch ? pidMatch[1] : '';
+      if (!paraid) { pos = pClose; continue; }
+
+      // Extract all oMath blocks as raw XML strings
+      var omaths = extractOmaths(paraXml);
+      if (!omaths.length) { pos = pClose; continue; }
+
+      // For each oMath: compute spoken text and unicode display
+      var spokenTexts = [], unicodeTexts = [], rawXmls = [];
+      omaths.forEach(function(om) {
+        rawXmls.push(om.xml);
+        if (isMeaningfulMath(om.xml)) {
+          var spoken = omathToSpoken(om.xml).replace(/\s+/g,' ').trim();
+          var uni = omathToUnicode(om.xml);
+          spokenTexts.push(spoken || '');
+          unicodeTexts.push(uni || '?');
         } else {
-          // Collect text from non-math children
-          var childText='';
-          var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
-          Array.from(ts).forEach(function(t){if(t.textContent)childText+=t.textContent});
-          if(childText.trim())prevText=childText;
+          // Not meaningful math - still show image but no spoken text
+          spokenTexts.push('');
+          unicodeTexts.push(omathToUnicode(om.xml) || '?');
         }
       });
 
-      // Build per-equation spoken text and unicode strings
-      var eqSpokens=maths.map(function(m){return o2s(m)||''});
-      var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
-      var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
+      // Combined spoken text for this paragraph (non-empty only)
+      var combinedSpoken = spokenTexts.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
 
-      // Store per-equation spoken texts NOW while DOM nodes are fresh
-      gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
-      gSpoken.push(allSpoken);
-      gSpokenPerEq.push(eqSpokens.slice()); // per-equation spoken array
-      gUnicode.push(eqUnicodes);
-      gOmml.push(maths);
-    });
-        setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
+      gParas.push({
+        paraid: paraid,
+        omathXmls: rawXmls,
+        spokenTexts: spokenTexts,       // per-equation spoken
+        unicodeTexts: unicodeTexts,     // per-equation unicode
+        combinedSpoken: combinedSpoken, // for review panel
+        paraXml: paraXml
+      });
+      paraCount++;
+      pos = pClose;
+    }
+
+    setP(100, 'Found ' + gParas.length + ' equation paragraph' + (gParas.length !== 1 ? 's' : ''));
     document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled=false;
+    document.getElementById('btnGo').disabled = false;
     renderReview();
-  }catch(e){document.getElementById('prog').classList.remove('show');document.getElementById('btnGo').disabled=false;showErr('Error: '+e.message);console.error(e)}
-}
 
-function renderReview(){
-  var wc=gParas.filter(function(p){return p.warn}).length;
-  document.getElementById('rc').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+(wc?' — '+wc+' flagged':'');
-  var rows='';
-  gParas.forEach(function(mp,i){
-    var w=mp.warn;
-    rows+='<tr'+(w?' class="warn-row"':'')+'><td class="num">#'+(i+1)+'</td><td>'+(w?'<div class="wbadge">⚠ verify</div>':'')+'<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea></td></tr>';
-  });
-  document.getElementById('ftable').innerHTML=rows;
-  gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(!ta)return;ta.addEventListener('input',function(){ta.classList.toggle('ed',ta.value.trim()!==gSpoken[i])})});
-  document.getElementById('review').classList.add('show');
-  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})},100);
-}
-function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(ta){ta.value=gSpoken[i];ta.classList.remove('ed')}})}
-
-// ── Export ─────────────────────────────────────────────────────────────────────
-async function exportDoc(){
-  console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
-  console.log('STEP1: gUnicode:', gUnicode.length, JSON.stringify(gUnicode[0]));
-  var texts;
-  try{texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});}catch(e){console.error('texts crash:',e);return;}
-  console.log('STEP2: texts built:', texts.length);
-  var bold,italic,sz;
-  try{bold=document.getElementById('optB').checked;italic=document.getElementById('optI').checked;sz=gSize*2;}catch(e){console.error('options crash:',e);return;}
-  console.log('STEP3: bold='+bold+' italic='+italic+' sz='+sz);
-  try{document.getElementById('prog').classList.add('show');}catch(e){}
-  setP(5,'Rendering formula images...');
-  console.log('STEP4: about to render '+gUnicode.length+' paragraphs');
-
-  // Render each equation as its own PNG image
-  var images=[];
-  try{
-    for(var i=0;i<gUnicode.length;i++){
-      setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'...');
-      console.log('Rendering para',i,'unicodes:',gUnicode[i]);
-      var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'?')});
-      images.push(paraImgs);
-      await new Promise(function(r){setTimeout(r,5)});
-    }
-    console.log('All images rendered:',images.length,'paragraphs');
-  }catch(renderErr){
-    console.error('RENDER ERROR:',renderErr);
-    document.getElementById('err').textContent='Render error: '+renderErr.message;
-    document.getElementById('err').classList.add('show');
+  } catch(e) {
     document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled=false;
-    return;
+    document.getElementById('btnGo').disabled = false;
+    showErr('Error: ' + e.message);
+    console.error(e);
   }
-
-  setP(68,'Building document...');
-
-  // Register all image relationships
-  var relsPath='word/_rels/document.xml.rels';
-  var relsXml=await gZip.file(relsPath).async('string');
-  var newRels=relsXml;
-  for(var k=0;k<images.length;k++){
-    for(var eq=0;eq<images[k].length;eq++){
-      var eqRid='rIdMath'+(k+1)+'e'+eq;
-      if(newRels.indexOf(eqRid)<0){
-        var rel='<Relationship Id="'+eqRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'_'+eq+'.png"/>';
-        newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
-      }
-    }
-  }
-
-  // Register PNG content type
-  var ctXml=await gZip.file('[Content_Types].xml').async('string');
-  var newCt=ctXml.indexOf('image/png')<0?ctXml.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>'):ctXml;
-
-  // Process each math paragraph
-  var newXml=gDocXml;
-  // Use pre-computed per-equation spoken texts
-  var paraList=gParas.map(function(mp,i){
-    return{
-      paraid:mp.paraid,
-      spoken:texts[i],
-      imgs:images[i],
-      unicodes:gUnicode[i],
-      eqSpokens:gSpokenPerEq[i]||[texts[i]],
-      paraIdx:i
-    };
-  }).filter(function(x){return x.paraid}).reverse();
-
-  console.log('paraList length:', paraList.length);
-  if(paraList.length>0){
-    var last=paraList[paraList.length-1]; // reversed so last = first para
-    console.log('First para eqSpokens:', last.eqSpokens);
-    console.log('First para imgs length:', last.imgs&&last.imgs.length);
-    console.log('First para paraid:', last.paraid);
-    console.log('gSpokenPerEq[0]:', gSpokenPerEq[0]);
-    console.log('gSpokenPerEq sample:', JSON.stringify(gSpokenPerEq[0]));
-  }
-  paraList.forEach(function(item){
-    var search='w14:paraId="'+item.paraid+'"';
-    var found=newXml.indexOf(search);if(found<0)return;
-    var pOpen=newXml.lastIndexOf('<w:p ',found);if(pOpen<0)return;
-    var pClose=newXml.indexOf('</w:p>',found)+6;
-    var para=newXml.substring(pOpen,pClose);
-
-    // Split paragraph on each oMath/oMathPara tag
-    // Replace each one with image + optional spoken text
-    // Detect answer choices by looking at text immediately before each equation
-    var result='';
-    var remaining=para;
-    var eqIdx=0;
-    var mathTags=['<m:oMathPara>','<m:oMath>','<oMathPara>','<oMath>'];
-    var mathEnds={'<m:oMathPara>':'</m:oMathPara>','<m:oMath>':'</m:oMath>',
-                  '<oMathPara>':'</oMathPara>','<oMath>':'</oMath>'};
-
-    while(true){
-      // Find earliest math tag
-      var earliest=-1,earliestTag='',earliestClose='';
-      mathTags.forEach(function(tag){
-        var pos=remaining.indexOf(tag);
-        if(pos>=0&&(earliest<0||pos<earliest)){
-          earliest=pos;earliestTag=tag;earliestClose=mathEnds[tag];
-        }
-      });
-      if(earliest<0)break;
-
-      // Everything before this equation
-      var before=remaining.slice(0,earliest);
-      var closePos=remaining.indexOf(earliestClose,earliest+earliestTag.length);
-      if(closePos<0)break;
-      var after=remaining.slice(closePos+earliestClose.length);
-
-      // Get image for this equation
-      var imgIdx=Math.min(eqIdx,item.imgs.length-1);
-      var img=item.imgs[imgIdx];
-      var rid='rIdMath'+(item.paraIdx+1)+'e'+imgIdx;
-      var imgRun='<w:r>'+imgXml(rid,img.wEmu,img.hEmu,'formula')+'</w:r>';
-
-      // Get spoken text for this specific equation
-      var eqSpoken=item.eqSpokens[Math.min(eqIdx,item.eqSpokens.length-1)]||'';
-
-      // Every equation gets image + spoken text
-      // Student sees image, Word reads spoken text
-      console.log('Eq '+eqIdx+' spoken: ['+eqSpoken+'] imgs:'+item.imgs.length+' eqSpokens:'+item.eqSpokens.length);
-      var replacement=imgRun;
-      if(eqSpoken){
-        replacement+=spkRun(eqSpoken,gColor,sz,bold,italic);
-      } else {
-        console.warn('No spoken text for eq '+eqIdx+' in para '+item.paraid);
-      }
-
-      result+=before+replacement;
-      remaining=after;
-      eqIdx++;
-    }
-    result+=remaining;
-
-    // Normalize line spacing
-    var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1;
-    var norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
-    if(spS>=0&&spE>=0)result=result.slice(0,spS)+norm+result.slice(spE+2);
-    else{var pp2=result.indexOf('</w:pPr>');if(pp2>=0)result=result.slice(0,pp2)+norm+result.slice(pp2)}
-
-    newXml=newXml.slice(0,pOpen)+result+newXml.slice(pClose);
-  });
-
-  setP(88,'Saving...');
-  gZip.file('word/document.xml',newXml);
-  gZip.file(relsPath,newRels);
-  gZip.file('[Content_Types].xml',newCt);
-  for(var m=0;m<images.length;m++){
-    for(var eq=0;eq<images[m].length;eq++){
-      var pngBytes=Uint8Array.from(atob(images[m][eq].b64),function(c){return c.charCodeAt(0)});
-      gZip.file('word/media/mimg'+(m+1)+'_'+eq+'.png',pngBytes);
-    }
-  }
-  var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
-  gZip.file('word/document.xml',gDocXml);gZip.file(relsPath,relsXml);gZip.file('[Content_Types].xml',ctXml);
-  setP(100,'Done!');
-  setTimeout(function(){document.getElementById('prog').classList.remove('show')},1500);
-  var url=URL.createObjectURL(blob);
-  var name=gFile.name.replace(/\.docx$/i,'')+'_ReadAloud.docx';
-  document.getElementById('dlbtn').href=url;document.getElementById('dlbtn').download=name;
-  document.getElementById('dli').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+' converted → '+name;
-  document.getElementById('dlrow').classList.add('show');
-  document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
+function renderReview() {
+  document.getElementById('rc').textContent = gParas.length + ' paragraph' + (gParas.length!==1?'s':'') + ' with equations';
+  var rows = '';
+  gParas.forEach(function(mp, i) {
+    rows += '<tr><td class="num">#'+(i+1)+'</td><td>'
+      + '<textarea id="fst'+i+'" rows="2">'+esc(mp.combinedSpoken)+'</textarea>'
+      + '</td></tr>';
+  });
+  document.getElementById('ftable').innerHTML = rows;
+  gParas.forEach(function(mp, i) {
+    var ta = document.getElementById('fst'+i);
+    if (!ta) return;
+    ta.addEventListener('input', function() { ta.classList.toggle('ed', ta.value.trim() !== mp.combinedSpoken); });
+  });
+  document.getElementById('review').classList.add('show');
+  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})}, 100);
+}
 
-async function run(){
-  if(!gFile)return;
-  document.getElementById('btnGo').disabled=true;
+function resetAll() {
+  gParas.forEach(function(mp, i) {
+    var ta = document.getElementById('fst'+i);
+    if (ta) { ta.value = mp.combinedSpoken; ta.classList.remove('ed'); }
+  });
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+async function exportDoc() {
+  var bold = document.getElementById('optB').checked;
+  var italic = document.getElementById('optI').checked;
+  var sz = gSize * 2;
+
   document.getElementById('prog').classList.add('show');
-  document.getElementById('review').classList.remove('show');
   document.getElementById('dlrow').classList.remove('show');
-  document.getElementById('err').classList.remove('show');
-  try{
-    setP(10,'Reading file…');
-    var buf=await gFile.arrayBuffer();
-    gZip=await JSZip.loadAsync(buf);
-    setP(25,'Parsing equations…');
-    gDocXml=await gZip.file('word/document.xml').async('string');
-    var parser=new DOMParser();
-    var xmlDoc=parser.parseFromString(gDocXml,'application/xml');
-    var allParas=Array.from(xmlDoc.querySelectorAll('p'));
-    gParas=[];gSpoken=[];gSpokenPerEq=[];gUnicode=[];gOmml=[];
-    allParas.forEach(function(p,idx){
-      var maths=Array.from(p.querySelectorAll('oMath'));
-      if(!maths.length)return;
-      var paraid=p.getAttributeNS('http://schemas.microsoft.com/office/word/2010/wordml','paraId')||p.getAttribute('w14:paraId')||'';
-      if(!paraid)return;
+  setP(5, 'Rendering formula images…');
 
-      // Walk children in document order to classify each equation
-      var questionEqIdx=[];   // equation indices that are question formulas
-      var answerEqIdx=[];     // equation indices that are answer choices (a. b. c. d.)
-      var eqCounter=0;
-      var prevText='';
-      var isOmathParaOnly=true; // true if paragraph is just a standalone oMathPara
-
-      Array.from(p.childNodes).forEach(function(child){
-        var tag=child.nodeName||'';
-        var localTag=tag.split(':').pop().split('}').pop();
-        if(localTag==='pPr')return;
-
-        if(localTag==='oMath'||localTag==='oMathPara'){
-          if(localTag==='oMath')isOmathParaOnly=false;
-          // Check if preceded by answer label a./b./c./d.
-          var pt=prevText.trim();
-          var isAnswerChoice=pt===''?false:
-            /^[a-eA-E]\.$/.test(pt)||/^[a-eA-E]\.\s*$/.test(pt)||
-            pt.endsWith('a.')||pt.endsWith('b.')||pt.endsWith('c.')||pt.endsWith('d.')||pt.endsWith('e.');
-          if(isAnswerChoice){
-            answerEqIdx.push(eqCounter);
-          } else {
-            questionEqIdx.push(eqCounter);
-          }
-          eqCounter++;
-        } else {
-          // Collect text from non-math children
-          var childText='';
-          var ts=child.querySelectorAll?child.querySelectorAll('t'):[];
-          Array.from(ts).forEach(function(t){if(t.textContent)childText+=t.textContent});
-          if(childText.trim())prevText=childText;
-        }
-      });
-
-      // Build per-equation spoken text and unicode strings
-      var eqSpokens=maths.map(function(m){return o2s(m)||''});
-      var eqUnicodes=maths.map(function(m){return o2u(m)||'[formula]'});
-      var allSpoken=eqSpokens.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
-
-      // Store per-equation spoken texts NOW while DOM nodes are fresh
-      gParas.push({idx:idx,paraid:paraid,warn:false,mathCount:maths.length});
-      gSpoken.push(allSpoken);
-      gSpokenPerEq.push(eqSpokens.slice()); // per-equation spoken array
-      gUnicode.push(eqUnicodes);
-      gOmml.push(maths);
-    });
-        setP(100,'Found '+gParas.length+' equation'+(gParas.length!==1?'s':''));
-    document.getElementById('prog').classList.remove('show');
-    document.getElementById('btnGo').disabled=false;
-    renderReview();
-  }catch(e){document.getElementById('prog').classList.remove('show');document.getElementById('btnGo').disabled=false;showErr('Error: '+e.message);console.error(e)}
-}
-
-function renderReview(){
-  var wc=gParas.filter(function(p){return p.warn}).length;
-  document.getElementById('rc').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+(wc?' — '+wc+' flagged':'');
-  var rows='';
-  gParas.forEach(function(mp,i){
-    var w=mp.warn;
-    rows+='<tr'+(w?' class="warn-row"':'')+'><td class="num">#'+(i+1)+'</td><td>'+(w?'<div class="wbadge">⚠ verify</div>':'')+'<textarea id="fst'+i+'" rows="2">'+esc(gSpoken[i])+'</textarea></td></tr>';
+  // Get edited spoken texts from review panel
+  var editedSpoken = gParas.map(function(mp, i) {
+    var ta = document.getElementById('fst'+i);
+    return ta ? ta.value.trim() : mp.combinedSpoken;
   });
-  document.getElementById('ftable').innerHTML=rows;
-  gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(!ta)return;ta.addEventListener('input',function(){ta.classList.toggle('ed',ta.value.trim()!==gSpoken[i])})});
-  document.getElementById('review').classList.add('show');
-  setTimeout(function(){document.getElementById('review').scrollIntoView({behavior:'smooth',block:'start'})},100);
-}
-function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById('fst'+i);if(ta){ta.value=gSpoken[i];ta.classList.remove('ed')}})}
 
-// ── Export ─────────────────────────────────────────────────────────────────────
-async function exportDoc(){
-  console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
-  console.log('gUnicode length:', gUnicode.length, 'gUnicode[0]:', gUnicode[0]);
-  var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
-  var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
-  document.getElementById('prog').classList.add('show');
-  setP(5,'Rendering formula images…');
-
-  // Render each formula as PNG using Canvas (zero dependencies, always works)
-  // gUnicode[i] is now an array of unicode strings, one per oMath in paragraph
-  var images=[];
-  for(var i=0;i<gUnicode.length;i++){
-    setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'…');
-    // Render each oMath separately, store as array
-    var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'[formula]')});
-    images.push(paraImgs);
+  // Render images
+  var allImages = []; // allImages[i] = array of {b64,wEmu,hEmu} for each equation in para i
+  for (var i = 0; i < gParas.length; i++) {
+    setP(5 + Math.round(i/gParas.length*60), 'Rendering ' + (i+1) + ' of ' + gParas.length + '…');
+    var paraImgs = gParas[i].unicodeTexts.map(function(u) { return renderFormulaPng(u); });
+    allImages.push(paraImgs);
     await new Promise(function(r){setTimeout(r,5)});
   }
 
-  setP(68,'Building document…');
+  setP(68, 'Building document…');
 
-  // Update relationships - register rIds for all equations per paragraph
-  var relsPath='word/_rels/document.xml.rels';
-  var relsXml=await gZip.file(relsPath).async('string');
-  var newRels=relsXml;
-  for(var k=0;k<images.length;k++){
-    var baseRid='rIdMath'+(k+1);
-    // Register main rId pointing to first image in paragraph
-    var rel='<Relationship Id="'+baseRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mimg'+(k+1)+'_0.png"/>';
-    if(newRels.indexOf(baseRid)<0)newRels=newRels.replace('</Relationships>',rel+'</Relationships>');
-    // Register per-equation rIds
-    for(var eq=0;eq<images[k].length;eq++){
-      var eqRid=eq===0?baseRid:baseRid+'x'+eq;
-      var eqTarget='media/mimg'+(k+1)+'_'+eq+'.png';
-      var eqRel='<Relationship Id="'+eqRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+eqTarget+'"/>';
-      if(newRels.indexOf(eqRid)<0)newRels=newRels.replace('</Relationships>',eqRel+'</Relationships>');
+  // Update rels
+  var relsPath = 'word/_rels/document.xml.rels';
+  var relsXml = await gZip.file(relsPath).async('string');
+  var newRels = relsXml;
+  var imgCounter = 0;
+  for (var i = 0; i < gParas.length; i++) {
+    for (var eq = 0; eq < allImages[i].length; eq++) {
+      var rid = 'rIdMathImg' + (++imgCounter);
+      gParas[i]['_rids'] = gParas[i]['_rids'] || [];
+      gParas[i]['_rids'].push(rid);
+      var rel = '<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/mathimg'+imgCounter+'.png"/>';
+      if (newRels.indexOf(rid) < 0) newRels = newRels.replace('</Relationships>', rel+'</Relationships>');
     }
   }
 
-  // Register PNG in Content_Types.xml
-  var ctXml=await gZip.file('[Content_Types].xml').async('string');
-  var newCt=ctXml.indexOf('image/png')<0?ctXml.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>'):ctXml;
+  // Content type
+  var ctXml = await gZip.file('[Content_Types].xml').async('string');
+  var newCt = ctXml.indexOf('image/png') < 0 ? ctXml.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>') : ctXml;
 
-  // Process paragraphs in reverse
-  var newXml=gDocXml;
-  var items=gParas.map(function(mp,i){return{
-    paraid:mp.paraid,
-    text:texts[i],
-    imgs:images[i],
-    rid:'rIdMath'+(i+1),
-    addSpoken:mp.addSpoken
-  }}).filter(function(x){return x.paraid}).reverse();
-  items.forEach(function(item){
-    var search='w14:paraId="'+item.paraid+'"';
-    var found=newXml.indexOf(search);if(found<0)return;
-    var pOpen=newXml.lastIndexOf('<w:p ',found);if(pOpen<0)return;
-    var pClose=newXml.indexOf('</w:p>',found)+6;
-    var para=newXml.substring(pOpen,pClose);
-    var result=para;
-    var paraImgs=item.imgs; // array of images, one per oMath
+  // Process document XML
+  var newXml = gDocXml;
 
-    // Replace EACH oMath/oMathPara with its own image, preserving all surrounding text
-    var eqIdx=0;
-    var oMathTags=[
-      ['<m:oMathPara>','</m:oMathPara>'],
-      ['<oMathPara>','</oMathPara>'],
-      ['<m:oMath>','</m:oMath>'],
-      ['<oMath>','</oMath>']
-    ];
+  // Process in reverse order to preserve string positions
+  for (var i = gParas.length - 1; i >= 0; i--) {
+    var mp = gParas[i];
+    var rids = mp['_rids'] || [];
+    var paraImgs = allImages[i];
+    var spoken_i = editedSpoken[i];
 
-    // Process all math tags in document order
-    var continueLoop=true;
-    while(continueLoop){
-      continueLoop=false;
-      // Find the earliest math tag
-      var earliest=-1,earliestEnd=-1,earliestClose='';
-      oMathTags.forEach(function(pair){
-        var os=result.indexOf(pair[0]);
-        if(os>=0&&(earliest<0||os<earliest)){
-          earliest=os;
-          earliestClose=pair[1];
-          earliestEnd=result.indexOf(pair[1],os)+pair[1].length;
-        }
-      });
-      if(earliest>=0&&earliestEnd>0){
-        var img=paraImgs[Math.min(eqIdx,paraImgs.length-1)];
-        var thisRid=item.rid+(eqIdx===0?'':'x'+eqIdx);
-        var imgR='<w:r>'+imgXml(thisRid,img.wEmu,img.hEmu,item.text)+'</w:r>';
-        result=result.slice(0,earliest)+imgR+result.slice(earliestEnd);
-        eqIdx++;
-        continueLoop=true;
+    // Find this paragraph in the XML
+    var search = 'w14:paraId="' + mp.paraid + '"';
+    var found = newXml.indexOf(search);
+    if (found < 0) continue;
+    var pOpen = newXml.lastIndexOf('<w:p ', found);
+    if (pOpen < 0) continue;
+    var pClose = newXml.indexOf('</w:p>', found) + 6;
+
+    var para = newXml.slice(pOpen, pClose);
+    var result = para;
+
+    // Replace each oMath/oMathPara with image + spoken text
+    // Work on the result string, replacing from left to right
+    var ridIdx = 0;
+    var eqIdx = 0;
+    var newResult = '';
+    var remaining = result;
+
+    while (true) {
+      // Find next math block
+      var omPos = remaining.indexOf('<m:oMath>');
+      var ompPos = remaining.indexOf('<m:oMathPara>');
+      var nextPos = -1, nextClose = '', nextLen = 0;
+
+      if (omPos >= 0 && (ompPos < 0 || omPos < ompPos)) {
+        nextPos = omPos; nextClose = '</m:oMath>';
+      } else if (ompPos >= 0) {
+        nextPos = ompPos; nextClose = '</m:oMathPara>';
       }
-    }
+      if (nextPos < 0) break;
 
-    // Add spoken text at end ONLY if this paragraph warrants it
-    if(item.addSpoken){
-      var closeTag=result.lastIndexOf('</w:p>');
-      result=result.slice(0,closeTag)+spkRun(item.text,gColor,sz,bold,italic)+result.slice(closeTag);
+      var endPos = remaining.indexOf(nextClose, nextPos);
+      if (endPos < 0) break;
+      endPos += nextClose.length;
+
+      // Everything before this equation
+      newResult += remaining.slice(0, nextPos);
+
+      // Build replacement: image + spoken text
+      var rid = rids[ridIdx] || rids[rids.length-1] || 'rIdFallback';
+      var img = paraImgs[eqIdx] || paraImgs[paraImgs.length-1] || {wEmu:500000,hEmu:100000,b64:''};
+      var eqSpoken = mp.spokenTexts[eqIdx] || '';
+
+      var replacement = '<w:r>' + imgXml(rid, img.wEmu, img.hEmu, eqSpoken) + '</w:r>';
+      if (eqSpoken) {
+        replacement += spkRun(eqSpoken, gColor, sz, bold, italic);
+      }
+
+      newResult += replacement;
+      remaining = remaining.slice(endPos);
+      ridIdx++;
+      eqIdx++;
     }
+    newResult += remaining;
 
     // Normalize line spacing
-    var spS=result.indexOf('<w:spacing '),spE=spS>=0?result.indexOf('/>',spS):-1,norm='<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
-    if(spS>=0&&spE>=0)result=result.slice(0,spS)+norm+result.slice(spE+2);
-    else{var pp2=result.indexOf('</w:pPr>');if(pp2>=0)result=result.slice(0,pp2)+norm+result.slice(pp2)}
-    newXml=newXml.slice(0,pOpen)+result+newXml.slice(pClose);
-  });
+    var spS = newResult.indexOf('<w:spacing '), spE = spS >= 0 ? newResult.indexOf('/>', spS) : -1;
+    var norm = '<w:spacing w:line="240" w:lineRule="auto" w:after="80"/>';
+    if (spS >= 0 && spE >= 0) newResult = newResult.slice(0,spS)+norm+newResult.slice(spE+2);
+    else { var pp = newResult.indexOf('</w:pPr>'); if (pp >= 0) newResult = newResult.slice(0,pp)+norm+newResult.slice(pp); }
 
-  setP(88,'Saving…');
-  gZip.file('word/document.xml',newXml);
-  gZip.file(relsPath,newRels);
-  gZip.file('[Content_Types].xml',newCt);
-  for(var m=0;m<images.length;m++){
-    for(var eq=0;eq<images[m].length;eq++){
-      var pngBytes=Uint8Array.from(atob(images[m][eq].b64),function(c){return c.charCodeAt(0)});
-      gZip.file('word/media/mimg'+(m+1)+'_'+eq+'.png',pngBytes);
+    newXml = newXml.slice(0, pOpen) + newResult + newXml.slice(pClose);
+  }
+
+  setP(88, 'Saving…');
+
+  // Save to zip
+  gZip.file('word/document.xml', newXml);
+  gZip.file(relsPath, newRels);
+  gZip.file('[Content_Types].xml', newCt);
+
+  // Save all images
+  imgCounter = 0;
+  for (var i = 0; i < allImages.length; i++) {
+    for (var eq = 0; eq < allImages[i].length; eq++) {
+      var pngBytes = Uint8Array.from(atob(allImages[i][eq].b64), function(c){return c.charCodeAt(0)});
+      gZip.file('word/media/mathimg'+(++imgCounter)+'.png', pngBytes);
     }
   }
-  var blob=await gZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
-  gZip.file('word/document.xml',gDocXml);gZip.file(relsPath,relsXml);gZip.file('[Content_Types].xml',ctXml);
-  setP(100,'Done!');
-  setTimeout(function(){document.getElementById('prog').classList.remove('show')},1500);
-  var url=URL.createObjectURL(blob);
-  var name=gFile.name.replace(/\.docx$/i,'')+'_ReadAloud.docx';
-  document.getElementById('dlbtn').href=url;document.getElementById('dlbtn').download=name;
-  document.getElementById('dli').textContent=gParas.length+' equation'+(gParas.length!==1?'s':'')+' converted → '+name;
+
+  var blob = await gZip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+
+  // Restore
+  gZip.file('word/document.xml', gDocXml);
+  gZip.file(relsPath, relsXml);
+  gZip.file('[Content_Types].xml', ctXml);
+
+  setP(100, 'Done!');
+  setTimeout(function(){document.getElementById('prog').classList.remove('show')}, 1500);
+
+  var url = URL.createObjectURL(blob);
+  var name = gFile.name.replace(/\.docx$/i,'') + '_ReadAloud.docx';
+  document.getElementById('dlbtn').href = url;
+  document.getElementById('dlbtn').download = name;
+  document.getElementById('dli').textContent = gParas.length + ' paragraphs converted → ' + name;
   document.getElementById('dlrow').classList.add('show');
-  document.getElementById('dlrow').scrollIntoView({behavior:'smooth',block:'nearest'});
+  document.getElementById('dlrow').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 </script>
 </body>
