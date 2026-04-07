@@ -516,7 +516,7 @@ function uniNode(node) {
 
 // ── Is this oMath meaningful? (filter out pts labels, single letters used as placeholders) ──
 function isMeaningfulMath(omathXml) {
-  // Extract raw text
+  // Extract raw text from all <m:t> elements
   var texts = [];
   var re = /<m:t[^>]*>([^<]*)<\/m:t>/g, m;
   while ((m = re.exec(omathXml)) !== null) {
@@ -524,12 +524,20 @@ function isMeaningfulMath(omathXml) {
     if (t) texts.push(t);
   }
   var raw = texts.join('').trim();
-  // Filter: pure points labels like "6pts", "4pts", "2pts"
-  if (/^\d+\s*pts?$/i.test(raw)) return false;
-  // Filter: single characters that are just placeholders (u, n, f used as labels)
-  // But keep single letters that are part of actual math context - too risky to filter
+
   // Filter: empty
   if (!raw) return false;
+  // Filter: pure points labels — "6pts", "(4pts)", "2pts", "(5pts)" etc.
+  if (/^\(?\d+\s*pts?\)?$/i.test(raw)) return false;
+  // Filter: single letter used as a placeholder (u, x, t, f, n)
+  if (/^[a-zA-Z]$/.test(raw)) return false;
+  // Filter: single operator or symbol
+  if (/^[\/=+\-×÷]$/.test(raw)) return false;
+  // Filter: just a number
+  if (/^\d+$/.test(raw)) return false;
+  // Filter: n=4 style labels (simple equality with small numbers, no calculus)
+  if (/^n\s*=\s*\d+$/.test(raw)) return false;
+
   return true;
 }
 
