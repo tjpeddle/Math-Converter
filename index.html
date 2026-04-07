@@ -444,13 +444,23 @@ async function exportDoc(){
   setP(5,'Rendering formula images...');
 
   // Render each equation as its own PNG image
-  // images[i] = array of {b64,wEmu,hEmu} one per oMath in paragraph i
   var images=[];
-  for(var i=0;i<gUnicode.length;i++){
-    setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'...');
-    var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'?')});
-    images.push(paraImgs);
-    await new Promise(function(r){setTimeout(r,5)});
+  try{
+    for(var i=0;i<gUnicode.length;i++){
+      setP(5+Math.round(i/gUnicode.length*60),'Rendering equation '+(i+1)+' of '+gUnicode.length+'...');
+      console.log('Rendering para',i,'unicodes:',gUnicode[i]);
+      var paraImgs=gUnicode[i].map(function(uStr){return renderFormulaPng(uStr||'?')});
+      images.push(paraImgs);
+      await new Promise(function(r){setTimeout(r,5)});
+    }
+    console.log('All images rendered:',images.length,'paragraphs');
+  }catch(renderErr){
+    console.error('RENDER ERROR:',renderErr);
+    document.getElementById('err').textContent='Render error: '+renderErr.message;
+    document.getElementById('err').classList.add('show');
+    document.getElementById('prog').classList.remove('show');
+    document.getElementById('btnGo').disabled=false;
+    return;
   }
 
   setP(68,'Building document...');
