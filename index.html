@@ -487,6 +487,15 @@ async function exportDoc(){
     };
   }).filter(function(x){return x.paraid}).reverse();
 
+  console.log('paraList length:', paraList.length);
+  if(paraList.length>0){
+    var last=paraList[paraList.length-1]; // reversed so last = first para
+    console.log('First para eqSpokens:', last.eqSpokens);
+    console.log('First para imgs length:', last.imgs&&last.imgs.length);
+    console.log('First para paraid:', last.paraid);
+    console.log('gSpokenPerEq[0]:', gSpokenPerEq[0]);
+    console.log('gSpokenPerEq sample:', JSON.stringify(gSpokenPerEq[0]));
+  }
   paraList.forEach(function(item){
     var search='w14:paraId="'+item.paraid+'"';
     var found=newXml.indexOf(search);if(found<0)return;
