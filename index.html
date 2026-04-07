@@ -438,10 +438,16 @@ function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById(
 // ── Export ─────────────────────────────────────────────────────────────────────
 async function exportDoc(){
   console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
-  var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
-  var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
-  document.getElementById('prog').classList.add('show');
+  console.log('STEP1: gUnicode:', gUnicode.length, JSON.stringify(gUnicode[0]));
+  var texts;
+  try{texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});}catch(e){console.error('texts crash:',e);return;}
+  console.log('STEP2: texts built:', texts.length);
+  var bold,italic,sz;
+  try{bold=document.getElementById('optB').checked;italic=document.getElementById('optI').checked;sz=gSize*2;}catch(e){console.error('options crash:',e);return;}
+  console.log('STEP3: bold='+bold+' italic='+italic+' sz='+sz);
+  try{document.getElementById('prog').classList.add('show');}catch(e){}
   setP(5,'Rendering formula images...');
+  console.log('STEP4: about to render '+gUnicode.length+' paragraphs');
 
   // Render each equation as its own PNG image
   var images=[];
@@ -691,6 +697,7 @@ function resetAll(){gParas.forEach(function(_,i){var ta=document.getElementById(
 // ── Export ─────────────────────────────────────────────────────────────────────
 async function exportDoc(){
   console.log('exportDoc called, gParas:', gParas.length, 'gZip:', !!gZip, 'gDocXml:', !!gDocXml, 'gSpokenPerEq:', gSpokenPerEq.length);
+  console.log('gUnicode length:', gUnicode.length, 'gUnicode[0]:', gUnicode[0]);
   var texts=gParas.map(function(_,i){var ta=document.getElementById('fst'+i);return ta?ta.value.trim():gSpoken[i]});
   var bold=document.getElementById('optB').checked,italic=document.getElementById('optI').checked,sz=gSize*2;
   document.getElementById('prog').classList.add('show');
