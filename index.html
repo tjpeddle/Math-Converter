@@ -282,7 +282,7 @@ function childArray(node){
 }
 
 function pw(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
-function spkExp(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
+function spkExp(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;if(/^(st|nd|rd|th)$/i.test(ab))return base+ab.toLowerCase();if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
 
 function processNode(node) {
   if (!node) return '';
@@ -535,6 +535,8 @@ function isMeaningfulMath(omathXml) {
   if (/^[\/=+\-×÷]$/.test(raw)) return false;
   // Filter: just a number
   if (/^\d+$/.test(raw)) return false;
+  // Filter: ordinal numbers like 51st, 2nd, 3rd, 4th
+  if (/^\d+(st|nd|rd|th)$/i.test(raw)) return false;
   return true;
 }
 
