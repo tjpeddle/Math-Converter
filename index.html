@@ -535,8 +535,6 @@ function isMeaningfulMath(omathXml) {
   if (/^[\/=+\-×÷]$/.test(raw)) return false;
   // Filter: just a number
   if (/^\d+$/.test(raw)) return false;
-  // Filter: ordinal numbers like 51st, 2nd, 3rd, 4th
-  if (/^\d+(st|nd|rd|th)$/i.test(raw)) return false;
   return true;
 }
 
