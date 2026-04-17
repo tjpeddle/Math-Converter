@@ -327,10 +327,14 @@ function processNode(node) {
   if (tag === 'f') {
     var nEl=getChild(node,'num'), dEl=getChild(node,'den');
     var n=walkAll(childArray(nEl)).join(' '), d=walkAll(childArray(dEl)).join(' ');
-    // Complex fraction: if numerator or denominator contains 'over', wrap for clarity
-    var nWrapped = n.indexOf(' over ')>=0 ? 'the quantity '+n+', end quantity' : n;
-    var dWrapped = d.indexOf(' over ')>=0 ? 'the quantity '+d+', end quantity' : d;
-    return nWrapped + ' over ' + dWrapped;
+    // Complex fraction: numerator or denominator contains another fraction
+    var nHasFrac = n.indexOf(' over ')>=0;
+    var dHasFrac = d.indexOf(' over ')>=0;
+    if(nHasFrac || dHasFrac){
+      // Natural instructor language: "the fraction with numerator... all over..."
+      return 'the fraction with numerator ' + n + ', all over ' + d;
+    }
+    return n + ' over ' + d;
   }
   if (tag === 'sSup') {
     var eEl=getChild(node,'e'), sEl=getChild(node,'sup');
