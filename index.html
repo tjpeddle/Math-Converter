@@ -230,7 +230,7 @@ function omathToUnicode(omathXml) {
 
 // ── Spoken math engine (works on standalone-parsed nodes) ─────────────────────
 var GK={α:'alpha',β:'beta',γ:'gamma',δ:'delta',ε:'epsilon',θ:'theta',λ:'lambda',μ:'mu',π:'pi',ρ:'rho',σ:'sigma',τ:'tau',φ:'phi',ω:'omega',Δ:'Delta',Σ:'Sigma',Π:'Pi',Ω:'Omega',Γ:'Gamma',Λ:'Lambda'};
-var SY={'±':'plus or minus','×':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','∈':'is an element of','∪':'union','∩':'intersection','→':'approaches','∂':'partial','°':'degrees'};
+var SY={'±':'plus or minus','×':'times','·':'times','⋅':'times','÷':'divided by','∞':'infinity','≤':'less than or equal to','≥':'greater than or equal to','≠':'not equal to','≈':'approximately equal to','≡':'is equivalent to','∈':'is an element of','∉':'is not an element of','∪':'union','∩':'intersection','→':'approaches','⇒':'implies','∂':'partial','°':'degrees','∫':'the integral of','∑':'the sum of','∏':'the product of','∝':'is proportional to','≅':'is congruent to','∼':'is similar to','⊥':'is perpendicular to','∥':'is parallel to','∠':'angle','′':'prime','″':'double prime','∓':'minus or plus','∓':'minus or plus'};
 var KN={sin:'sine',cos:'cosine',tan:'tangent',csc:'cosecant',sec:'secant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'arcsine',arccos:'arccosine',arctan:'arctangent',ln:'the natural log of',log:'log',lim:'the limit',det:'the determinant of',max:'the maximum of',min:'the minimum of',dx:'d x',dy:'d y',dt:'d t',du:'d u',dv:'d v'};
 var SKIP_TAGS={fPr:1,sSupPr:1,sSubPr:1,sSubSupPr:1,dPr:1,radPr:1,naryPr:1,mPr:1,rPr:1,ctrlPr:1,rFonts:1,sz:1,color:1,accPr:1,groupChrPr:1,limLowPr:1,limUppPr:1,barPr:1,funcPr:1,phantPr:1,sPrePr:1,type:1,i:1,b:1,strike:1,vertAlign:1,noProof:1,sty:1};
 var PASS_TAGS={oMath:1,oMathPara:1,e:1,fName:1,box:1,borderBox:1,groupChr:1};
@@ -282,7 +282,17 @@ function childArray(node){
 }
 
 function pw(n){n=n.trim();var p=parseInt(n);if(!isNaN(p)){var nm=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];return(p>=1&&p<=10?nm[p]:p+'th')+' power'}return n+' power'}
-function spkExp(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;var abClean=ab.replace(/[()]/g,'').trim();if(/^(st|nd|rd|th)$/i.test(abClean))return base+abClean.toLowerCase();if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
+function spkExp(base,raw){var e=raw.trim(),neg=e.charAt(0)==='-',ab=neg?e.slice(1).trim():e;var abClean=ab.replace(/[()]/g,'').trim();if(/^(st|nd|rd|th)$/i.test(abClean))return base+abClean.toLowerCase();if(base==='e')return neg?'e to the negative '+ab:'e to the '+ab;if(ab==='0')return base+' to the zero power';if(ab==='1')return neg?base+' to the negative 1':base;
+  // Trig functions squared/cubed: "sine of x squared" → "sine squared of x"
+  var trigMatch=base.match(/^(sine|cosine|tangent|secant|cosecant|cotangent|arcsine|arccosine|arctangent|hyperbolic sine|hyperbolic cosine|hyperbolic tangent)(\s+of\s+.+)?$/i);
+  if(trigMatch&&!neg){
+    var fn=trigMatch[1],arg=trigMatch[2]||'';
+    if(ab==='2')return fn+' squared'+arg;
+    if(ab==='3')return fn+' cubed'+arg;
+    if(ab==='-1')return 'inverse '+fn+arg;
+    return fn+' to the '+pw(ab)+arg;
+  }
+  if(ab==='2')return neg?base+' to the negative 2':base+' squared';if(ab==='3')return neg?base+' to the negative 3':base+' cubed';return neg?base+' to the negative '+ab:base+' to the '+pw(ab)}
 
 function processNode(node) {
   if (!node) return '';
@@ -317,7 +327,10 @@ function processNode(node) {
   if (tag === 'f') {
     var nEl=getChild(node,'num'), dEl=getChild(node,'den');
     var n=walkAll(childArray(nEl)).join(' '), d=walkAll(childArray(dEl)).join(' ');
-    return n + ' over ' + d;
+    // Complex fraction: if numerator or denominator contains 'over', wrap for clarity
+    var nWrapped = n.indexOf(' over ')>=0 ? 'the quantity '+n+', end quantity' : n;
+    var dWrapped = d.indexOf(' over ')>=0 ? 'the quantity '+d+', end quantity' : d;
+    return nWrapped + ' over ' + dWrapped;
   }
   if (tag === 'sSup') {
     var eEl=getChild(node,'e'), sEl=getChild(node,'sup');
