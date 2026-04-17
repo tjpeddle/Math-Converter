@@ -195,6 +195,39 @@ function extractOmaths(paraXml) {
   return results;
 }
 
+// ── Post-process spoken text: remove "the quantity/end quantity" markers ───────
+function cleanSpoken(s) {
+  var TQ='the quantity', EQ='end quantity';
+  var OPS={over:1,plus:1,minus:1,divided:1,times:1,by:1,of:1,from:1,to:1,and:1,or:1};
+  var changed=true;
+  while(changed){
+    changed=false;
+    var tqPos=s.indexOf(TQ); if(tqPos<0)break;
+    var firstEq=s.indexOf(EQ,tqPos+TQ.length);
+    if(firstEq<0){s=s.slice(0,tqPos)+s.slice(tqPos+TQ.length).replace(/^\s+/,'');changed=true;continue;}
+    var ss=tqPos+TQ.length, lastTq=tqPos;
+    while(true){var p=s.indexOf(TQ,ss);if(p<0||p>firstEq)break;lastTq=p;ss=p+TQ.length;}
+    tqPos=lastTq;
+    var eqPos=s.indexOf(EQ,tqPos+TQ.length);
+    var inner=s.slice(tqPos+TQ.length,eqPos).trim().replace(/,\s*$/,'').trim();
+    var bef=s.slice(0,tqPos).replace(/\s+$/,''), aft=s.slice(eqPos+EQ.length);
+    var afts=aft.replace(/^\s+/,''), conn='';
+    if(/^,\s*times\b/.test(afts)){conn=', times';aft=afts.replace(/^,\s*times\s*/,'');}
+    else if(/^\s+times\b/.test(aft)){conn=', times';aft=aft.replace(/^\s+times\s*/,'');}
+    else if(/^\s+(the quantity|[a-zA-Z0-9])/.test(aft)&&!/^\s+(over|plus|minus|divided|squared|cubed|all|end|and|or)/.test(aft)){conn=', times';}
+    // Add times BEFORE group if preceded by a value (not an operator)
+    var preConn='';
+    if(bef&&/[a-zA-Z0-9]$/.test(bef)){
+      var lwm=bef.match(/(\w+)\s*$/);
+      if(lwm&&!OPS[lwm[1].toLowerCase()])preConn=', times';
+    }
+    if(preConn)bef=bef+preConn;
+    s=((bef?bef+' ':'')+inner+conn+aft).replace(/\s+/g,' ').trim();
+    changed=true;
+  }
+  return s.replace(/,\s*times\s+(over|plus|minus|divided|squared|cubed)/g,' $1').replace(/\s+/g,' ').trim();
+}
+
 // ── Parse single oMath XML string → spoken text ───────────────────────────────
 // Uses DOMParser on a standalone XML document with proper namespace declarations
 // This avoids the namespace issues with parsing the full document
@@ -209,7 +242,7 @@ function omathToSpoken(omathXml) {
     // Get the oMath element - it's the first child of root
     var omath = root.firstElementChild;
     if (!omath) return '';
-    return processNode(omath);
+    return cleanSpoken(processNode(omath));
   } catch(e) {
     return '';
   }
@@ -368,6 +401,8 @@ function processNode(node) {
     if(oc===''&&cc==='')return inn;
     if(oc==='|'&&cc==='|')return'the absolute value of '+inn;
     if(oc==='{'&&cc==='}')return'the set '+inn;
+    if(oc==='⌈'&&cc==='⌉')return'the ceiling of '+inn;
+    if(oc==='⌊'&&cc==='⌋')return'the floor of '+inn;
     return'the quantity '+inn+', end quantity';
   }
   if (tag === 'func') {
