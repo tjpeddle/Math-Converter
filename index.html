@@ -197,35 +197,24 @@ function extractOmaths(paraXml) {
 
 // ── Post-process spoken text: remove "the quantity/end quantity" markers ───────
 function cleanSpoken(s) {
-  var TQ='the quantity', EQ='end quantity';
-  var OPS={over:1,plus:1,minus:1,divided:1,times:1,by:1,of:1,from:1,to:1,and:1,or:1};
-  var changed=true;
-  while(changed){
-    changed=false;
-    var tqPos=s.indexOf(TQ); if(tqPos<0)break;
-    var firstEq=s.indexOf(EQ,tqPos+TQ.length);
-    if(firstEq<0){s=s.slice(0,tqPos)+s.slice(tqPos+TQ.length).replace(/^\s+/,'');changed=true;continue;}
-    var ss=tqPos+TQ.length, lastTq=tqPos;
-    while(true){var p=s.indexOf(TQ,ss);if(p<0||p>firstEq)break;lastTq=p;ss=p+TQ.length;}
-    tqPos=lastTq;
-    var eqPos=s.indexOf(EQ,tqPos+TQ.length);
-    var inner=s.slice(tqPos+TQ.length,eqPos).trim().replace(/,\s*$/,'').trim();
-    var bef=s.slice(0,tqPos).replace(/\s+$/,''), aft=s.slice(eqPos+EQ.length);
-    var afts=aft.replace(/^\s+/,''), conn='';
-    if(/^,\s*times\b/.test(afts)){conn=', times';aft=afts.replace(/^,\s*times\s*/,'');}
-    else if(/^\s+times\b/.test(aft)){conn=', times';aft=aft.replace(/^\s+times\s*/,'');}
-    else if(/^\s+(the quantity|[a-zA-Z0-9])/.test(aft)&&!/^\s+(over|plus|minus|divided|squared|cubed|all|end|and|or)/.test(aft)){conn=', times';}
-    // Add times BEFORE group if preceded by a value (not an operator)
-    var preConn='';
-    if(bef&&/[a-zA-Z0-9]$/.test(bef)){
-      var lwm=bef.match(/(\w+)\s*$/);
-      if(lwm&&!OPS[lwm[1].toLowerCase()])preConn=', times';
-    }
-    if(preConn)bef=bef+preConn;
-    s=((bef?bef+' ':'')+inner+conn+aft).replace(/\s+/g,' ').trim();
-    changed=true;
-  }
-  return s.replace(/,\s*times\s+(over|plus|minus|divided|squared|cubed)/g,' $1').replace(/\s+/g,' ').trim();
+  // Per math instructor feedback (Jenny Sharpe, HPU Math Dept):
+  // Keep "the quantity" as opening marker (signals group start)
+  // Remove "end quantity" (redundant - next "the quantity" or sentence end signals close)
+  // Add "times" between adjacent groups
+  var OPS={over:1,plus:1,minus:1,divided:1,times:1,by:1,of:1,from:1,to:1,and:1,or:1,is:1,numerator:1,denominator:1,quantity:1};
+  // Step 1: "end quantity, times the quantity" → ", times the quantity"
+  s=s.replace(/,?\s*end quantity,?\s*times\s+the quantity/g,', times the quantity');
+  // Step 2: "end quantity." → "."
+  s=s.replace(/,?\s*end quantity\./g,'.');
+  // Step 3: remaining "end quantity" → ""
+  s=s.replace(/,?\s*end quantity/g,'');
+  // Step 4: Add "times" before "the quantity" when preceded by a value (not operator)
+  s=s.replace(/(\w+)(\s+the quantity)/g,function(m,word,rest){
+    return OPS[word.toLowerCase()]?m:word+', times the quantity';
+  });
+  // Cleanup
+  s=s.replace(/,\s*times,\s*times/g,', times');
+  return s.replace(/\s+/g,' ').trim();
 }
 
 // ── Parse single oMath XML string → spoken text ───────────────────────────────
@@ -360,14 +349,15 @@ function processNode(node) {
   if (tag === 'f') {
     var nEl=getChild(node,'num'), dEl=getChild(node,'den');
     var n=walkAll(childArray(nEl)).join(' '), d=walkAll(childArray(dEl)).join(' ');
-    // Complex fraction: numerator or denominator contains another fraction
-    var nHasFrac = n.indexOf(' over ')>=0;
-    var dHasFrac = d.indexOf(' over ')>=0;
+    // Jenny Sharpe (Math Dept) feedback: use "The numerator is X. The denominator is Y."
+    // This is unambiguous at all complexity levels and how instructors explain fractions
+    // Complex fractions (fraction within fraction): use "the fraction with numerator... all over..."
+    var nHasFrac = n.indexOf(' over ')>=0 || n.indexOf('numerator')>=0;
+    var dHasFrac = d.indexOf(' over ')>=0 || d.indexOf('numerator')>=0;
     if(nHasFrac || dHasFrac){
-      // Natural instructor language: "the fraction with numerator... all over..."
       return 'the fraction with numerator ' + n + ', all over ' + d;
     }
-    return n + ' over ' + d;
+    return 'The numerator is ' + n + '. The denominator is ' + d + '.';
   }
   if (tag === 'sSup') {
     var eEl=getChild(node,'e'), sEl=getChild(node,'sup');
@@ -590,30 +580,154 @@ function isMeaningfulMath(omathXml) {
   return true;
 }
 
-// ── Canvas PNG renderer ───────────────────────────────────────────────────────
-function renderFormulaPng(unicodeStr) {
-  if (!unicodeStr || unicodeStr === '?') unicodeStr = '(formula)';
-  var fontSize = 16;
-  var font = 'bold ' + fontSize + 'px "Cambria Math","Times New Roman",serif';
-  var pad = 10;
-  var tmpC = document.createElement('canvas');
-  tmpC.width = 600; tmpC.height = 50;
-  var tmpCtx = tmpC.getContext('2d');
-  tmpCtx.font = font;
-  var tw = Math.ceil(tmpCtx.measureText(unicodeStr).width);
-  var W = tw + pad*2, H = fontSize + pad*2;
-  var canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'white'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = 'black'; ctx.font = font; ctx.textBaseline = 'middle';
-  ctx.fillText(unicodeStr, pad, H/2);
-  var b64 = canvas.toDataURL('image/png').split(',')[1];
-  // EMU: at 96dpi 1px = 9525 EMU
-  var wEmu = Math.round(W * 9525), hEmu = Math.round(H * 9525);
-  var MAX = 4572000;
-  if (wEmu > MAX) { var sc = MAX/wEmu; wEmu = MAX; hEmu = Math.round(hEmu*sc); }
-  return {b64:b64, wEmu:wEmu, hEmu:hEmu};
+// ── Math Render Tree (proper stacked fractions) ───────────────────────────────
+function buildRenderTree(omathXml) {
+  try {
+    var wrapped='<root xmlns:m="'+NS_M+'" xmlns:w="'+NS_W+'">'+omathXml+'</root>';
+    var xmlDoc=new DOMParser().parseFromString(wrapped,'application/xml');
+    var omath=xmlDoc.documentElement.firstElementChild;
+    if(!omath)return{t:'txt',s:'?'};
+    return treeNode(omath);
+  }catch(e){return{t:'txt',s:'?'};}
+}
+function treeNode(node){
+  if(!node)return{t:'txt',s:''};
+  var tag=node.localName||'';
+  if(!tag||SKIP_TAGS[tag])return null;
+  var ch=childArray(node);
+  if(tag==='oMath'||tag==='oMathPara'||PASS_TAGS[tag]||tag==='e'||tag==='num'||tag==='den'||tag==='fName')return treeRow(ch);
+  if(tag==='r'){var tel=getChild(node,'t');if(tel){var txt=(tel.textContent||'').replace(/[ ​ ]/g,'').trim();return txt?{t:'txt',s:txt}:null;}return treeRow(ch);}
+  if(tag==='t'){var s=(node.textContent||'').replace(/[ ​ ]/g,'').trim();return s?{t:'txt',s:s}:null;}
+  if(tag==='f'){var nEl=getChild(node,'num'),dEl=getChild(node,'den');return{t:'frac',n:treeRow(childArray(nEl)),d:treeRow(childArray(dEl))};}
+  if(tag==='sSup'){var eE=getChild(node,'e'),sE=getChild(node,'sup');return{t:'sup',base:treeRow(childArray(eE)),exp:treeRow(childArray(sE))};}
+  if(tag==='sSub'){var eE2=getChild(node,'e'),sE2=getChild(node,'sub');return{t:'sub',base:treeRow(childArray(eE2)),sub:treeRow(childArray(sE2))};}
+  if(tag==='sSubSup'){var eE3=getChild(node,'e'),sE3=getChild(node,'sub'),pE=getChild(node,'sup');return{t:'subsup',base:treeRow(childArray(eE3)),sub:treeRow(childArray(sE3)),sup:treeRow(childArray(pE))};}
+  if(tag==='d'){
+    var dPr=getChild(node,'dPr'),oc='(',cc=')';
+    if(dPr){childArray(dPr).forEach(function(dc){if(dc.localName==='begChr'){var v=dc.getAttributeNS(NS_M,'val');if(v!==null)oc=v;}if(dc.localName==='endChr'){var v2=dc.getAttributeNS(NS_M,'val');if(v2!==null)cc=v2;}});}
+    if(oc===''&&cc===''){var pts0=ch.filter(function(c){return c.localName==='e';});return treeRow(pts0.map(function(p){return treeRow(childArray(p));}));}
+    var pts=ch.filter(function(c){return c.localName==='e';});
+    var items=[];
+    if(oc)items.push({t:'txt',s:oc});
+    pts.forEach(function(p,i){items.push(treeRow(childArray(p)));if(i<pts.length-1)items.push({t:'txt',s:','});});
+    if(cc)items.push({t:'txt',s:cc});
+    return{t:'row',items:items};
+  }
+  if(tag==='rad'){var eE5=getChild(node,'e');return{t:'sqrt',arg:treeRow(childArray(eE5))};}
+  if(tag==='func'){var fnE=getChild(node,'fName'),eE4=getChild(node,'e');return{t:'row',items:[treeRow(childArray(fnE)),treeRow(childArray(eE4))]};}
+  if(tag==='limLow'){var eE7=getChild(node,'e'),lE=getChild(node,'lim');return{t:'sub',base:treeRow(childArray(eE7)),sub:treeRow(childArray(lE))};}
+  if(tag==='nary'){
+    var nPr=getChild(node,'naryPr'),sE4=getChild(node,'sub'),uE=getChild(node,'sup'),eE6=getChild(node,'e');
+    var chr='∫';if(nPr){childArray(nPr).forEach(function(nc){if(nc.localName==='chr'){var v=nc.getAttributeNS(NS_M,'val');if(v)chr=v;}});}
+    var ni=[{t:'txt',s:chr}];
+    if(sE4)ni.push({t:'sub',base:{t:'txt',s:''},sub:treeRow(childArray(sE4))});
+    if(uE)ni.push({t:'sup',base:{t:'txt',s:''},exp:treeRow(childArray(uE))});
+    if(eE6)ni.push(treeRow(childArray(eE6)));
+    return{t:'row',items:ni};
+  }
+  return treeRow(ch);
+}
+function treeRow(children){
+  if(!Array.isArray(children)){// handle single node
+    var r=treeNode(children);return r||{t:'txt',s:''};
+  }
+  var items=[];
+  children.forEach(function(c){var r=treeNode(c);if(r)items.push(r);});
+  if(!items.length)return{t:'txt',s:''};
+  if(items.length===1)return items[0];
+  return{t:'row',items:items};
+}
+
+var BFS=18; // base font size
+
+function measureTree(ctx,node,sz){
+  sz=sz||BFS;
+  if(!node)return{w:0,h:sz,asc:sz*0.75};
+  if(node.t==='txt'){
+    ctx.font='bold '+sz+'px "Cambria Math","Times New Roman",serif';
+    var tw=ctx.measureText(node.s||'').width;
+    return{w:Math.ceil(tw)+1,h:sz,asc:sz*0.75};
+  }
+  if(node.t==='row'){
+    var its=(node.items||[]).filter(Boolean);
+    if(!its.length)return{w:0,h:sz,asc:sz*0.75};
+    var tw2=0,mh=0,masc=0;
+    its.forEach(function(it){var m=measureTree(ctx,it,sz);tw2+=m.w+1;mh=Math.max(mh,m.h);masc=Math.max(masc,m.asc);});
+    return{w:tw2,h:mh,asc:masc};
+  }
+  if(node.t==='frac'){
+    var nsz=sz*0.85,pad=3,bar=2,hp=4;
+    var nm=measureTree(ctx,node.n,nsz),dm=measureTree(ctx,node.d,nsz);
+    var fw=Math.max(nm.w,dm.w)+hp*2;
+    var fh=nm.h+bar+pad*2+dm.h;
+    return{w:fw,h:fh,asc:nm.h+pad+bar};
+  }
+  if(node.t==='sup'){var bm=measureTree(ctx,node.base,sz),em=measureTree(ctx,node.exp,sz*0.65);return{w:bm.w+em.w+1,h:bm.h+em.h*0.5,asc:bm.asc+em.h*0.45};}
+  if(node.t==='sub'){var bm2=measureTree(ctx,node.base,sz),sm=measureTree(ctx,node.sub,sz*0.65);return{w:bm2.w+sm.w+1,h:bm2.h+sm.h*0.3,asc:bm2.asc};}
+  if(node.t==='subsup'){var bm3=measureTree(ctx,node.base,sz),sm2=measureTree(ctx,node.sub,sz*0.65),em2=measureTree(ctx,node.sup,sz*0.65);return{w:bm3.w+Math.max(sm2.w,em2.w)+2,h:bm3.h+em2.h*0.4,asc:bm3.asc+em2.h*0.4};}
+  if(node.t==='sqrt'){var am=measureTree(ctx,node.arg,sz);return{w:am.w+sz*0.65+4,h:am.h+4,asc:am.asc+3};}
+  return{w:sz*2,h:sz,asc:sz*0.75};
+}
+
+function drawTree(ctx,node,x,y,sz){
+  sz=sz||BFS;
+  if(!node)return;
+  if(node.t==='txt'){
+    ctx.font='bold '+sz+'px "Cambria Math","Times New Roman",serif';
+    ctx.fillStyle='black';ctx.textBaseline='alphabetic';
+    ctx.fillText(node.s||'',x,y);return;
+  }
+  if(node.t==='row'){
+    var its=(node.items||[]).filter(Boolean),cx=x;
+    its.forEach(function(it){var m=measureTree(ctx,it,sz);drawTree(ctx,it,cx,y,sz);cx+=m.w+1;});return;
+  }
+  if(node.t==='frac'){
+    var nsz=sz*0.85,pad=3,bar=2,hp=4;
+    var nm=measureTree(ctx,node.n,nsz),dm=measureTree(ctx,node.d,nsz);
+    var fw=Math.max(nm.w,dm.w)+hp*2;
+    var barY=y-sz*0.12;
+    ctx.fillStyle='black';ctx.fillRect(x,barY-bar,fw,bar);
+    var nx=x+(fw-nm.w)/2;
+    drawTree(ctx,node.n,nx,barY-pad,nsz);
+    var dx=x+(fw-dm.w)/2;
+    drawTree(ctx,node.d,dx,barY+pad+dm.h*0.78,nsz);
+    return;
+  }
+  if(node.t==='sup'){var bm=measureTree(ctx,node.base,sz);drawTree(ctx,node.base,x,y,sz);if(node.exp)drawTree(ctx,node.exp,x+bm.w+1,y-sz*0.45,sz*0.65);return;}
+  if(node.t==='sub'){var bm2=measureTree(ctx,node.base,sz);drawTree(ctx,node.base,x,y,sz);if(node.sub)drawTree(ctx,node.sub,x+bm2.w+1,y+sz*0.22,sz*0.65);return;}
+  if(node.t==='subsup'){
+    var bm3=measureTree(ctx,node.base,sz);drawTree(ctx,node.base,x,y,sz);
+    var rx=x+bm3.w+1;
+    if(node.sup)drawTree(ctx,node.sup,rx,y-sz*0.4,sz*0.65);
+    if(node.sub)drawTree(ctx,node.sub,rx,y+sz*0.2,sz*0.65);return;
+  }
+  if(node.t==='sqrt'){
+    var am=measureTree(ctx,node.arg,sz);
+    var sx=x+sz*0.55;
+    drawTree(ctx,node.arg,sx+2,y,sz);
+    ctx.strokeStyle='black';ctx.lineWidth=1.5;ctx.beginPath();
+    ctx.moveTo(x,y-sz*0.1);ctx.lineTo(x+sz*0.15,y+sz*0.25);ctx.lineTo(x+sz*0.4,y-sz*0.65);ctx.lineTo(sx+am.w+2,y-sz*0.65);
+    ctx.stroke();return;
+  }
+}
+
+function renderFormulaTree(renderTree){
+  var pad=10;
+  var tmpC=document.createElement('canvas');tmpC.width=800;tmpC.height=200;
+  var tmpCtx=tmpC.getContext('2d');
+  var m=measureTree(tmpCtx,renderTree,BFS);
+  var W=m.w+pad*2, H=m.h+pad*2;
+  if(W<10)W=20;if(H<10)H=20;
+  var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='white';ctx.fillRect(0,0,W,H);
+  var baseline=pad+m.asc;
+  drawTree(ctx,renderTree,pad,baseline,BFS);
+  var b64=canvas.toDataURL('image/png').split(',')[1];
+  var wEmu=Math.round(W*9525),hEmu=Math.round(H*9525);
+  var MAX=4572000;
+  if(wEmu>MAX){var sc=MAX/wEmu;wEmu=MAX;hEmu=Math.round(hEmu*sc);}
+  return{b64:b64,wEmu:wEmu,hEmu:hEmu};
 }
 
 // ── DOCX helpers ──────────────────────────────────────────────────────────────
@@ -759,11 +873,14 @@ async function exportDoc() {
     return ta ? ta.value.trim() : mp.combinedSpoken;
   });
 
-  // Render images
-  var allImages = []; // allImages[i] = array of {b64,wEmu,hEmu} for each equation in para i
+  // Render images using proper stacked fraction renderer
+  var allImages = [];
   for (var i = 0; i < gParas.length; i++) {
     setP(5 + Math.round(i/gParas.length*60), 'Rendering ' + (i+1) + ' of ' + gParas.length + '…');
-    var paraImgs = gParas[i].unicodeTexts.map(function(u) { return renderFormulaPng(u); });
+    var paraImgs = gParas[i].omathXmls.map(function(omathXml) {
+      var tree = buildRenderTree(omathXml);
+      return renderFormulaTree(tree);
+    });
     allImages.push(paraImgs);
     await new Promise(function(r){setTimeout(r,5)});
   }
