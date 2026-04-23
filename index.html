@@ -616,6 +616,16 @@ function treeNode(node){
   if(tag==='rad'){var eE5=getChild(node,'e');return{t:'sqrt',arg:treeRow(childArray(eE5))};}
   if(tag==='func'){var fnE=getChild(node,'fName'),eE4=getChild(node,'e');return{t:'row',items:[treeRow(childArray(fnE)),treeRow(childArray(eE4))]};}
   if(tag==='limLow'){var eE7=getChild(node,'e'),lE=getChild(node,'lim');return{t:'sub',base:treeRow(childArray(eE7)),sub:treeRow(childArray(lE))};}
+  if(tag==='m'){
+    // Matrix: render each row (mr) as a separate line, stacked vertically
+    var rows=ch.filter(function(c){return c.localName==='mr';});
+    if(!rows.length)return treeRow(ch);
+    return{t:'matrix',rows:rows.map(function(r){
+      var cells=childArray(r).filter(function(c){return c.localName==='e';});
+      return{t:'row',items:cells.map(function(c){return treeRow(childArray(c));}).filter(Boolean)};
+    })};
+  }
+  if(tag==='mr'){return treeRow(ch.filter(function(c){return c.localName==='e';}).map(function(c){return treeRow(childArray(c));}));}
   if(tag==='nary'){
     var nPr=getChild(node,'naryPr'),sE4=getChild(node,'sub'),uE=getChild(node,'sup'),eE6=getChild(node,'e');
     var chr='∫';if(nPr){childArray(nPr).forEach(function(nc){if(nc.localName==='chr'){var v=nc.getAttributeNS(NS_M,'val');if(v)chr=v;}});}
@@ -666,6 +676,14 @@ function measureTree(ctx,node,sz){
   if(node.t==='sub'){var bm2=measureTree(ctx,node.base,sz),sm=measureTree(ctx,node.sub,sz*0.65);return{w:bm2.w+sm.w+1,h:bm2.h+sm.h*0.3,asc:bm2.asc};}
   if(node.t==='subsup'){var bm3=measureTree(ctx,node.base,sz),sm2=measureTree(ctx,node.sub,sz*0.65),em2=measureTree(ctx,node.sup,sz*0.65);return{w:bm3.w+Math.max(sm2.w,em2.w)+2,h:bm3.h+em2.h*0.4,asc:bm3.asc+em2.h*0.4};}
   if(node.t==='sqrt'){var am=measureTree(ctx,node.arg,sz);return{w:am.w+sz*0.65+4,h:am.h+4,asc:am.asc+3};}
+  if(node.t==='matrix'){
+    var rowGap=sz*0.4;
+    var rows=node.rows||[];
+    var maxW=0,totalH=0;
+    rows.forEach(function(r){var m=measureTree(ctx,r,sz);maxW=Math.max(maxW,m.w);totalH+=m.h;});
+    totalH+=rowGap*(rows.length-1);
+    return{w:maxW,h:totalH,asc:totalH*0.5};
+  }
   return{w:sz*2,h:sz,asc:sz*0.75};
 }
 
@@ -708,6 +726,17 @@ function drawTree(ctx,node,x,y,sz){
     ctx.strokeStyle='black';ctx.lineWidth=1.5;ctx.beginPath();
     ctx.moveTo(x,y-sz*0.1);ctx.lineTo(x+sz*0.15,y+sz*0.25);ctx.lineTo(x+sz*0.4,y-sz*0.65);ctx.lineTo(sx+am.w+2,y-sz*0.65);
     ctx.stroke();return;
+  }
+  if(node.t==='matrix'){
+    var rowGap=sz*0.4;
+    var rows=node.rows||[];
+    var cy=y;
+    rows.forEach(function(r,i){
+      var m=measureTree(ctx,r,sz);
+      drawTree(ctx,r,x,cy,sz);
+      cy+=m.h+rowGap;
+    });
+    return;
   }
 }
 
