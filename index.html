@@ -164,9 +164,28 @@ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 
 // ── Extract oMath blocks from XML string ──────────────────────────────────────
 // Works directly on the raw XML string - no DOM namespace issues
+// Extract content of outermost <m:e> elements (balanced, handles nesting)
+function extractMrCells(mrXml) {
+  var results = [], pos = 0;
+  while (pos < mrXml.length) {
+    var start = mrXml.indexOf('<m:e>', pos);
+    if (start < 0) break;
+    var depth = 1, sp = start + 5;
+    while (depth > 0 && sp < mrXml.length) {
+      var no = mrXml.indexOf('<m:e>', sp);
+      var nc = mrXml.indexOf('</m:e>', sp);
+      if (nc < 0) break;
+      if (no >= 0 && no < nc) { depth++; sp = no + 5; }
+      else { depth--; if (depth === 0) { results.push(mrXml.slice(start+5, nc)); } sp = nc + 6; }
+    }
+    pos = sp;
+  }
+  return results;
+}
+
 function extractOmaths(paraXml) {
   // Returns array of {type, xml, start, end} for each oMath/oMathPara in order
-  // If an oMath contains a matrix (<m:m>), splits into one entry per row (<m:mr>)
+  // If an oMath contains a matrix (<m:m>) with multiple rows, splits into one entry per row
   var results = [];
   var pos = 0;
   while (pos < paraXml.length) {
@@ -177,9 +196,7 @@ function extractOmaths(paraXml) {
     var best = null;
     tags.forEach(function(t) {
       var s = paraXml.indexOf(t.open, pos);
-      if (s >= 0 && (!best || s < best.start)) {
-        best = {start: s, tag: t};
-      }
+      if (s >= 0 && (!best || s < best.start)) best = {start:s, tag:t};
     });
     if (!best) break;
     var endPos = paraXml.indexOf(best.tag.close, best.start);
@@ -187,22 +204,26 @@ function extractOmaths(paraXml) {
     endPos += best.tag.close.length;
     var xml = paraXml.slice(best.start, endPos);
 
-    // Check if this oMath contains a matrix (<m:m>)
-    // If so, split into one synthetic oMath per matrix row
+    // Check for matrix with multiple rows
     if (xml.indexOf('<m:m>') >= 0) {
-      var mrMatches = xml.match(/<m:mr>([\s\S]*?)<\/m:mr>/g);
-      if (mrMatches && mrMatches.length > 1) {
-        // Split: one image per row
-        mrMatches.forEach(function(mr) {
-          // Extract cell contents from <m:e>...</m:e>
-          var cells = mr.match(/<m:e>([\s\S]*?)<\/m:e>/g) || [];
-          var rowContent = cells.map(function(c) {
-            return c.replace(/^<m:e>/, '').replace(/<\/m:e>$/, '');
-          }).join('');
-          var syntheticXml = '<m:oMath>' + rowContent + '</m:oMath>';
+      // Extract each <m:mr>...</m:mr> block
+      var mrList = [], mrPos = 0;
+      while (true) {
+        var ms = xml.indexOf('<m:mr>', mrPos);
+        if (ms < 0) break;
+        var me = xml.indexOf('</m:mr>', ms);
+        if (me < 0) break;
+        mrList.push(xml.slice(ms + 6, me)); // content between <m:mr> and </m:mr>
+        mrPos = me + 7;
+      }
+      if (mrList.length > 1) {
+        mrList.forEach(function(mrContent) {
+          // Use balanced extraction to get outermost <m:e> contents
+          var cells = extractMrCells(mrContent);
+          var rowContent = cells.join('');
           results.push({
             type: 'oMath',
-            xml: syntheticXml,
+            xml: '<m:oMath>' + rowContent + '</m:oMath>',
             start: best.start,
             end: endPos,
             matrixRow: true
@@ -213,12 +234,7 @@ function extractOmaths(paraXml) {
       }
     }
 
-    results.push({
-      type: best.tag.type,
-      xml: xml,
-      start: best.start,
-      end: endPos
-    });
+    results.push({type:best.tag.type, xml:xml, start:best.start, end:endPos});
     pos = endPos;
   }
   return results;
