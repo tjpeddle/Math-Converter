@@ -833,7 +833,13 @@ async function run() {
     var paraCount = 0;
 
     while (pos < gDocXml.length) {
-      var pOpen = gDocXml.indexOf('<w:p ', pos);
+      // Find next paragraph - support both <w:p > (with attributes) and <w:p> (no attributes)
+      var pOpen1 = gDocXml.indexOf('<w:p ', pos);
+      var pOpen2 = gDocXml.indexOf('<w:p>', pos);
+      var pOpen = -1;
+      if (pOpen1 >= 0 && pOpen2 >= 0) pOpen = Math.min(pOpen1, pOpen2);
+      else if (pOpen1 >= 0) pOpen = pOpen1;
+      else if (pOpen2 >= 0) pOpen = pOpen2;
       if (pOpen < 0) break;
       var pClose = gDocXml.indexOf('</w:p>', pOpen);
       if (pClose < 0) break;
@@ -845,10 +851,9 @@ async function run() {
         pos = pClose; continue;
       }
 
-      // Extract paraId
+      // Extract paraId - use w14:paraId if present, otherwise use position as synthetic ID
       var pidMatch = paraXml.match(/w14:paraId="([^"]+)"/);
-      var paraid = pidMatch ? pidMatch[1] : '';
-      if (!paraid) { pos = pClose; continue; }
+      var paraid = pidMatch ? pidMatch[1] : 'pos_' + pOpen;
 
       // Extract all oMath blocks as raw XML strings
       var omaths = extractOmaths(paraXml);
@@ -878,6 +883,7 @@ async function run() {
 
       gParas.push({
         paraid: paraid,
+        paraOffset: pOpen,  // character position in gDocXml
         omathXmls: rawXmls,
         spokenTexts: spokenTexts,
         unicodeTexts: unicodeTexts,
@@ -988,12 +994,26 @@ async function exportDoc() {
 
     console.log('Processing para '+i+' paraid='+mp.paraid+' isMatrix='+mp.isMatrix+' imgs='+paraImgs.length+' rids='+rids.length);
     // Find this paragraph in the XML
-    var search = 'w14:paraId="' + mp.paraid + '"';
-    var found = newXml.indexOf(search);
-    if (found < 0) continue;
-    var pOpen = newXml.lastIndexOf('<w:p ', found);
-    if (pOpen < 0) continue;
-    var pClose = newXml.indexOf('</w:p>', found) + 6;
+    var pOpen, pClose;
+    if (mp.paraid.indexOf('pos_') === 0) {
+      // No paraId - find by original character position
+      // We process in reverse so earlier paras haven't been modified yet
+      pOpen = mp.paraOffset;
+      // Verify we're at a paragraph tag
+      if (newXml.slice(pOpen, pOpen+4) !== '<w:p') {
+        // Offset shifted - search nearby
+        var nearby = newXml.lastIndexOf('<w:p', pOpen + 200);
+        if (nearby < 0) continue;
+        pOpen = nearby;
+      }
+    } else {
+      var search = 'w14:paraId="' + mp.paraid + '"';
+      var found = newXml.indexOf(search);
+      if (found < 0) continue;
+      pOpen = newXml.lastIndexOf('<w:p', found);
+      if (pOpen < 0) continue;
+    }
+    pClose = newXml.indexOf('</w:p>', pOpen) + 6;
 
     var para = newXml.slice(pOpen, pClose);
     var result = para;
