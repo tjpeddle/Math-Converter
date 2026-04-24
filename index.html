@@ -166,6 +166,7 @@ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 // Works directly on the raw XML string - no DOM namespace issues
 function extractOmaths(paraXml) {
   // Returns array of {type, xml, start, end} for each oMath/oMathPara in order
+  // If an oMath contains a matrix (<m:m>), splits into one entry per row (<m:mr>)
   var results = [];
   var pos = 0;
   while (pos < paraXml.length) {
@@ -184,9 +185,37 @@ function extractOmaths(paraXml) {
     var endPos = paraXml.indexOf(best.tag.close, best.start);
     if (endPos < 0) break;
     endPos += best.tag.close.length;
+    var xml = paraXml.slice(best.start, endPos);
+
+    // Check if this oMath contains a matrix (<m:m>)
+    // If so, split into one synthetic oMath per matrix row
+    if (xml.indexOf('<m:m>') >= 0) {
+      var mrMatches = xml.match(/<m:mr>([\s\S]*?)<\/m:mr>/g);
+      if (mrMatches && mrMatches.length > 1) {
+        // Split: one image per row
+        mrMatches.forEach(function(mr) {
+          // Extract cell contents from <m:e>...</m:e>
+          var cells = mr.match(/<m:e>([\s\S]*?)<\/m:e>/g) || [];
+          var rowContent = cells.map(function(c) {
+            return c.replace(/^<m:e>/, '').replace(/<\/m:e>$/, '');
+          }).join('');
+          var syntheticXml = '<m:oMath>' + rowContent + '</m:oMath>';
+          results.push({
+            type: 'oMath',
+            xml: syntheticXml,
+            start: best.start,
+            end: endPos,
+            matrixRow: true
+          });
+        });
+        pos = endPos;
+        continue;
+      }
+    }
+
     results.push({
       type: best.tag.type,
-      xml: paraXml.slice(best.start, endPos),
+      xml: xml,
       start: best.start,
       end: endPos
     });
@@ -677,12 +706,17 @@ function measureTree(ctx,node,sz){
   if(node.t==='subsup'){var bm3=measureTree(ctx,node.base,sz),sm2=measureTree(ctx,node.sub,sz*0.65),em2=measureTree(ctx,node.sup,sz*0.65);return{w:bm3.w+Math.max(sm2.w,em2.w)+2,h:bm3.h+em2.h*0.4,asc:bm3.asc+em2.h*0.4};}
   if(node.t==='sqrt'){var am=measureTree(ctx,node.arg,sz);return{w:am.w+sz*0.65+4,h:am.h+4,asc:am.asc+3};}
   if(node.t==='matrix'){
-    var rowGap=sz*0.4;
+    var rowGap=sz*0.6;
     var rows=node.rows||[];
-    var maxW=0,totalH=0;
-    rows.forEach(function(r){var m=measureTree(ctx,r,sz);maxW=Math.max(maxW,m.w);totalH+=m.h;});
+    var maxW=0,totalH=0,firstAsc=sz*0.75;
+    rows.forEach(function(r,i){
+      var m=measureTree(ctx,r,sz);
+      maxW=Math.max(maxW,m.w);
+      if(i===0)firstAsc=m.asc;
+      totalH+=m.h;
+    });
     totalH+=rowGap*(rows.length-1);
-    return{w:maxW,h:totalH,asc:totalH*0.5};
+    return{w:maxW,h:totalH,asc:firstAsc};
   }
   return{w:sz*2,h:sz,asc:sz*0.75};
 }
@@ -728,28 +762,30 @@ function drawTree(ctx,node,x,y,sz){
     ctx.stroke();return;
   }
   if(node.t==='matrix'){
-    var rowGap=sz*0.4;
+    var rowGap=sz*0.6;
     var rows=node.rows||[];
-    var cy=y;
+    var cy=y; // y is baseline of first row
     rows.forEach(function(r,i){
       var m=measureTree(ctx,r,sz);
       drawTree(ctx,r,x,cy,sz);
-      cy+=m.h+rowGap;
+      cy+=m.h+rowGap; // next row baseline
     });
     return;
   }
 }
 
 function renderFormulaTree(renderTree){
-  var pad=10;
-  var tmpC=document.createElement('canvas');tmpC.width=800;tmpC.height=200;
+  var pad=12;
+  var tmpC=document.createElement('canvas');tmpC.width=1200;tmpC.height=600;
   var tmpCtx=tmpC.getContext('2d');
   var m=measureTree(tmpCtx,renderTree,BFS);
-  var W=m.w+pad*2, H=m.h+pad*2;
-  if(W<10)W=20;if(H<10)H=20;
+  // Add extra bottom padding to ensure descenders and bottom rows don't clip
+  var W=m.w+pad*2, H=m.h+pad*3;
+  if(W<20)W=20;if(H<20)H=20;
   var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   var ctx=canvas.getContext('2d');
   ctx.fillStyle='white';ctx.fillRect(0,0,W,H);
+  // baseline = top padding + ascent of first content
   var baseline=pad+m.asc;
   drawTree(ctx,renderTree,pad,baseline,BFS);
   var b64=canvas.toDataURL('image/png').split(',')[1];
@@ -836,13 +872,17 @@ async function run() {
       // Combined spoken text for this paragraph (non-empty only)
       var combinedSpoken = spokenTexts.filter(Boolean).join(', ').replace(/\s+/g,' ').trim();
 
+      // Check if this paragraph's equations came from a matrix split
+      var isMatrix = omaths.length > 0 && omaths[0].matrixRow === true;
+
       gParas.push({
         paraid: paraid,
         omathXmls: rawXmls,
-        spokenTexts: spokenTexts,       // per-equation spoken
-        unicodeTexts: unicodeTexts,     // per-equation unicode
-        combinedSpoken: combinedSpoken, // for review panel
-        paraXml: paraXml
+        spokenTexts: spokenTexts,
+        unicodeTexts: unicodeTexts,
+        combinedSpoken: combinedSpoken,
+        paraXml: paraXml,
+        isMatrix: isMatrix
       });
       paraCount++;
       pos = pClose;
@@ -983,20 +1023,42 @@ async function exportDoc() {
       // Everything before this equation
       newResult += remaining.slice(0, nextPos);
 
-      // Build replacement: image + spoken text
-      var rid = rids[ridIdx] || rids[rids.length-1] || 'rIdFallback';
-      var img = paraImgs[eqIdx] || paraImgs[paraImgs.length-1] || {wEmu:500000,hEmu:100000,b64:''};
-      var eqSpoken = mp.spokenTexts[eqIdx] || '';
+      // Check if this oMath was a matrix split into multiple rows
+      // If so, check how many images are matrix rows (sequential matrixRow entries)
+      var isMatrix = mp.isMatrix;
+      var replacement = '';
 
-      var replacement = '<w:r>' + imgXml(rid, img.wEmu, img.hEmu, eqSpoken) + '</w:r>';
-      if (eqSpoken) {
-        replacement += spkRun(eqSpoken, gColor, sz, bold, italic);
+      if (isMatrix && eqIdx === 0) {
+        // Insert ALL row images at once for the matrix oMath
+        var allRids = mp['_rids'] || rids;
+        var allImgs = paraImgs;
+        for (var mi = 0; mi < allImgs.length; mi++) {
+          var mrid = allRids[mi] || allRids[allRids.length-1];
+          var mimg = allImgs[mi];
+          var mspoken = mp.spokenTexts[mi] || '';
+          replacement += '<w:r>' + imgXml(mrid, mimg.wEmu, mimg.hEmu, mspoken) + '</w:r>';
+          if (mspoken) replacement += spkRun(mspoken, gColor, sz, bold, italic);
+          // Add line break between matrix rows (except after last)
+          if (mi < allImgs.length - 1) {
+            replacement += '<w:r><w:br/></w:r>';
+          }
+        }
+        // Skip all remaining oMath tags in this paragraph (they don't exist - it was one matrix)
+        eqIdx = allImgs.length;
+        ridIdx = allRids.length;
+      } else {
+        // Normal single equation
+        var rid = rids[ridIdx] || rids[rids.length-1] || 'rIdFallback';
+        var img = paraImgs[eqIdx] || paraImgs[paraImgs.length-1] || {wEmu:500000,hEmu:100000,b64:''};
+        var eqSpoken = mp.spokenTexts[eqIdx] || '';
+        replacement = '<w:r>' + imgXml(rid, img.wEmu, img.hEmu, eqSpoken) + '</w:r>';
+        if (eqSpoken) replacement += spkRun(eqSpoken, gColor, sz, bold, italic);
+        ridIdx++;
+        eqIdx++;
       }
 
       newResult += replacement;
       remaining = remaining.slice(endPos);
-      ridIdx++;
-      eqIdx++;
     }
     newResult += remaining;
 
