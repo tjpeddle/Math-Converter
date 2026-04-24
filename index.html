@@ -985,6 +985,7 @@ async function exportDoc() {
     var paraImgs = allImages[i];
     var spoken_i = editedSpoken[i];
 
+    console.log('Processing para '+i+' paraid='+mp.paraid+' isMatrix='+mp.isMatrix+' imgs='+paraImgs.length+' rids='+rids.length);
     // Find this paragraph in the XML
     var search = 'w14:paraId="' + mp.paraid + '"';
     var found = newXml.indexOf(search);
