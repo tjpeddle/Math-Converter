@@ -811,6 +811,7 @@ function spkRun(text, color, sz, bold, italic) {
 
 // ── Main extraction ───────────────────────────────────────────────────────────
 async function run() {
+  console.log('RUN CALLED - gFile:', gFile ? gFile.name : 'null');
   if (!gFile) return;
   document.getElementById('btnGo').disabled = true;
   document.getElementById('prog').classList.add('show');
